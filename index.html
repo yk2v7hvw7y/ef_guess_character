@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>翼遥动漫社-角色猜猜乐</title>
+<style>
+  /* ============================================================
+     第一部分：全局样式
+     ============================================================ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: #181a30;                              /* 没配背景图时的深蓝紫底色 */
+    color: #f0f2ff;
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    min-height: 100%;
+  }
+  body {
+    padding: 12px;
+  }
+  /* 全屏背景图层：进入某个 IP 后由 JS 设置背景图；z-index:0 在最底层 */
+  #bgLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-color: #181a30;
+    background-size: cover;                           /* 等比铺满整个屏幕，多余裁掉 */
+    background-position: center center;
+    background-repeat: no-repeat;
+  }
+  /* 背景图上的压暗遮罩：保证不管图多亮，上面的文字都看得清 */
+  #bgLayer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(18, 20, 42, 0.74);
+  }
+  /* 所有内容的舞台：要浮在背景层之上 */
+  #app {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .hidden { display: none !important; }
+
+  /* ============================================================
+     第二部分：首页（选择IP）
+     ============================================================ */
+  #homeScreen { padding-top: 30px; text-align: center; }
+  #homeScreen h1 {
+    color: #ffc83c;                                    /* 金色标题 */
+    font-size: clamp(28px, 6vw, 40px);
+    margin-bottom: 8px;
+  }
+  #homeScreen .sub {
+    color: #c6cadb;
+    font-size: clamp(15px, 3vw, 18px);
+    margin-bottom: 28px;
+  }
+  /* 范围卡片：用按钮做，整块都可以点 */
+  .range-card {
+    display: block;
+    width: 100%;
+    margin-bottom: 16px;
+    padding: 22px 18px;
+    background: rgba(38, 42, 72, 0.92);
+    border: 2px solid #ffc83c;
+    border-radius: 14px;
+    color: #f0f2ff;
+    font-size: clamp(19px, 4vw, 23px);
+    font-weight: bold;
+    cursor: pointer;
+    touch-action: manipulation;                        /* 触摸立即响应 */
+  }
+  .range-card:active { background: #31365c; }
+  .range-card .count {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: normal;
+    color: #b4b9d4;
+  }
+
+  /* ============================================================
+     第三部分：游戏页（标题 + 三个竖向滚轮 + 三个按钮）
+     ============================================================ */
+  #gameTitle {
+    text-align: center;
+    color: #ffc83c;
+    font-size: clamp(22px, 5vw, 32px);
+    margin: 14px 0 22px;
+    /* 文字加一点深色阴影 */
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  }
+  .reel-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .reel-label {
+    flex: 0 0 4.2em;                                   /* 固定宽度，三行标签对齐 */
+    text-align: center;
+    font-size: clamp(16px, 3.6vw, 21px);
+    font-weight: bold;
+    color: #ffc83c;
+    margin-right: 10px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  }
+  /* 竖向滚动窗口：高 2 格（CELL_H 60px × 2 = 120px）。
+     中间一格完整显示抽中的词，上下相邻的词只各露半格 */
+  .reel-window {
+    position: relative;
+    flex: 1;
+    height: 120px;
+    background: rgba(38, 42, 72, 0.85);               /* 半透明，背景图能隐约透出 */
+    border-radius: 10px;
+    overflow: hidden;                                  /* 关键：裁掉窗外的文字 */
+  }
+  /* 正中央的金色选中框（一条与窗口同宽的横向高亮带） */
+  .reel-center {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    top: 50%;
+    height: 60px;                                     
+    transform: translateY(-50%);
+    border: 3px solid #ffc83c;
+    border-radius: 8px;
+    pointer-events: none;                              /* 不挡触摸 */
+  }
+  /* 该滚轮停稳后，选中框发光提示 */
+  .reel-row.done .reel-center {
+    box-shadow: 0 0 12px rgba(255, 200, 60, 0.75);
+  }
+  /* 滚动的文字格子：宽度占满窗口（长词可自动换行），JS 每帧改 translateY。
+     初始 opacity:0（不可见），点开始后才淡入显示 */
+  .reel-cell {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: clamp(15px, 3.4vw, 20px);
+    font-weight: bold;
+    line-height: 1.25;
+    white-space: normal;                               /* 允许换行，长文字也塞得下 */
+    word-break: break-word;
+    padding: 0 10px;
+    overflow: hidden;                                  /* 超过两行就裁掉，不影响相邻格 */
+    color: #8b90a8;                                    /* 未抽中的词：灰色 */
+    opacity: 0;                                        /* 初始隐藏，避免堆叠 */
+    transition: opacity 0.3s;
+  }
+  .reel-cell.on {
+    color: #ffffff;                                    /* 正中央（抽中）的词：亮白 */
+  }
+  /* 窗口中央的“?”占位符为还没点开始时的提示 */
+  .reel-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 40px;
+    font-weight: bold;
+    color: #5a5f78;
+    pointer-events: none;                              /* 不挡点击 */
+  }
+  /* 底部三个椭圆按钮 */
+  .btn-bar {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 26px;
+  }
+  .oval-btn {
+    min-width: 26%;
+    padding: 13px 10px;
+    border-radius: 999px;                             /* 胶囊椭圆 */
+    border: 2px solid #ffc83c;
+    background: #e65a5a;
+    color: #fff;
+    font-size: clamp(17px, 4vw, 21px);
+    font-weight: bold;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .oval-btn:active { filter: brightness(1.15); }
+  /* 谜底按钮：没抽完之前是灰色不可点 */
+  .oval-btn:disabled {
+    background: #5a5f78;
+    border-color: #6a708f;
+    color: #c6cadb;
+    cursor: not-allowed;
+  }
+  /* 每个 IP 抽奖界面底部的专属提示语（每个界面内容不同） */
+  #gameTip {
+    margin-top: 32px;                                  /* 往下移，和按钮拉开距离 */
+    text-align: center;
+    color: #9a9fb5;
+    font-size: clamp(11px, 2.6vw, 14px);               /* 字体缩小 */
+    line-height: 1.5;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  }
+  /* ============================================================
+     第四部分：谜底弹窗
+     ============================================================ */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    cursor: pointer;
+    touch-action: manipulation;
+    overscroll-behavior: contain;
+  }
+  #overlay.show { display: flex; }
+  #panel {
+    width: 380px;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;                                 /* 内容太长时面板内部滚动 */
+    background: #262a48;
+    border: 2px solid #ffc83c;
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    cursor: default;
+  }
+  #popImg {
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 10px;
+    display: none;                                    /* 没图时隐藏 */
+    margin: 0 auto;
+  }
+  #popPlaceholder {
+    height: 160px;
+    display: none;                                    /* 没图时显示 */
+    align-items: center;
+    justify-content: center;
+    background: #373c5f;
+    border-radius: 10px;
+    color: #969cb4;
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  #popName {
+    color: #ffc83c;
+    font-size: 28px;
+    margin: 10px 0 6px;
+  }
+  #popText {
+    color: #f0f2ff;
+    font-size: 17px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  #popHint { color: #969cb4; font-size: 14px; }
+  /* 右下角版本号：确认手机上加载的是新文件时用 */
+  #ver {
+    position: fixed;
+    right: 10px;
+    bottom: 8px;
+    z-index: 2;
+    color: #aab0cc;
+    font-size: 13px;
+    text-shadow: 0 1px 3px #000;
+  }
+</style>
+</head>
+<body>
+<!-- 全屏背景图层：默认空，进入某个 IP 时由 JS 换成该 IP 的图 -->
+<div id="bgLayer"></div>
+<div id="app">
+  <!-- ============ 第一个界面：选择IP ============ -->
+  <section id="homeScreen">
+    <h1>翼遥动漫社-角色猜猜乐</h1>
+    <p class="sub">请选择IP</p>
+    <div id="rangeList"></div>
+  </section>
+
+  <!-- ============ 第二个界面：滚轮抽奖 ============ -->
+  <section id="gameScreen" class="hidden">
+    <h2 id="gameTitle"></h2>
+    <div id="reelRows">
+      <!-- 三行“左标签 + 右窗口”，窗口内词条上下滚动；由 JS 根据当前范围自动生成 -->
+    </div>
+    <div class="btn-bar">
+      <button class="oval-btn" id="btnStart">开始</button>
+      <button class="oval-btn" id="btnAnswer" disabled>谜底</button>
+      <button class="oval-btn" id="btnBack">返回</button>
+    </div>
+    <!-- 这个 IP 专属的底部提示语，由 JS 从 range.tip 填入 -->
+    <p id="gameTip"></p>
+  </section>
+</div>
+<!-- ============ 谜底弹窗（默认隐藏） ============ -->
+<div id="overlay">
+  <div id="panel">
+    <img id="popImg" alt="角色图片">
+    <div id="popPlaceholder">（暂无图片）</div>
+    <div id="popName"></div>
+    <div id="popText"></div>
+    <div id="popHint">点击弹窗外空白处关闭</div>
+  </div>
+</div>
+
+<div id="ver">v4</div>
+
+<script>
+"use strict";
+
+/* ================================================================
+   一、数据配置区
+   ----------------------------------------------------------------
+   ★ 想新增一个 IP：照着 RANGES 里的对象再加一个 { }。
+   ★ 想新增一个角色：往对应 IP 的 characters 里加一个 { }。
+   ★ 三个滚轮里滚什么词：默认自动从所有角色的 attrs 收集去重，
+     attrs 的第 1/2/3 个词分别属于第 1/2/3 个滚轮。
+   ★ tip：该 IP 抽奖界面最底部那句话，每个 IP 写得不一样。
+   ★ 背景图怎么加（重点看这里！）：
+     1) 在 index.html 旁边新建一个文件夹（比如叫 assets）；
+     2) 把图片丢进去，比如 assets/bg-anime.jpg；
+     3) 在该 IP 的配置里写：background: "assets/bg-anime.jpg",
+        不填或填 null 就是默认深蓝紫色背景。
+     建议：图片用 jpg、竖屏比例（如 1080×1920），手机上铺满不变形。
+   ================================================================ */
+const RANGES = [
+  {
+    // name：首页卡片上显示的名字
+    name: "鸣潮",
+    // title：进入后页面顶部的标题
+    title: "鸣潮·角色猜猜乐",
+    // background：这个 IP 抽奖界面的背景图路径（没有就填 null）
+    background: null,                              // 例如 "assets/bg-anime.jpg"
+    // labels：三行滚轮左边的标签
+    labels: ["地区", "外观", "性格"],
+    // tip：这个 IP 抽奖界面最底部的专属提示语
+    tip: "背景图由XXX提供，感激不尽",
+    // characters：谜底角色池。点“开始”时从这里随机选定一个角色
+    characters: [
+      {
+        name: "爱弥斯",
+        text: "星炬学院的偶像，隧者的共鸣者，同时也是你的家人",
+        image: "assets/Aemeath.jpg",
+        attrs: ["拉海洛", "粉毛+驾驶服+星星眼", "救世主+爱"]
+      },
+      {
+        name: "守岸人",
+        text: "《海贼王》主角，梦想是成为海贼王，永远戴着一顶草帽。",
+        image: null,
+        attrs: ["日本", "草帽", "热血"]
+      },
+      {
+        name: "皮卡丘",
+        text: "宝可梦系列的招牌电气鼠，放电时脸颊会冒出电火花。",
+        image: null,
+        attrs: ["日本", "黄色电气鼠", "呆萌"]
+      },
+      {
+        name: "哪吒",
+        text: "脚踩风火轮、身披混天绫的少年战神，喊出“我命由我不由天”。",
+        image: null,
+        attrs: ["中国", "混天绫", "叛逆"]
+      },
+      {
+        name: "蜘蛛侠",
+        text: "纽约街头荡着蛛丝飞来飞去的超级英雄，话多得停不下来。",
+        image: null,
+        attrs: ["美国", "紧身衣", "话痨"]
+      }
+    ]
+  },
+  {
+    name: "历史人物",
+    title: "历史人物 · 猜猜乐",
+    background: null,                              // 例如 "assets/bg-history.jpg"
+    labels: ["朝代", "外貌", "性格"],
+    tip: "小提示：按朝代、外貌与性格抽丝剥茧，猜猜这位青史留名的人物究竟是谁？",
+    characters: [
+      {
+        name: "李白",
+        text: "唐代诗仙，好酒任侠，让高力士脱靴、贺知章呼为谪仙人。",
+        image: null,
+        attrs: ["唐朝", "佩剑", "豪放"]
+      },
+      {
+        name: "诸葛亮",
+        text: "三国蜀汉丞相，羽扇纶巾，隆中一对便定下三分天下。",
+        image: null,
+        attrs: ["三国", "羽扇", "谨慎"]
+      },
+      {
+        name: "关羽",
+        text: "武圣关云长，丹凤眼、卧蚕眉，面如重枣，二尺长髯飘胸前。",
+        image: null,
+        attrs: ["三国", "长髯", "忠义"]
+      },
+      {
+        name: "武松",
+        text: "梁山好汉，景阳冈上一顿拳脚打死吊睛白额大虫。",
+        image: null,
+        attrs: ["北宋", "打虎英雄", "勇猛"]
+      }
+    ]
+  }
+];
+
+/* ================================================================
+   二、抽奖时间 / 尺寸配置
+   ================================================================ */
+const CELL_H = 60;                    // 每个词占的格子高度（px），要和 CSS 的 .reel-center/.reel-cell 一致
+const WIN_H = CELL_H * 2;             // 窗口高 2 格：中间一格完整显示，上下只各露半格
+const TOTAL_SPIN = 6.0;               // 一轮抽奖总耗时 6 秒
+const STOP_INTERVAL = 1.0;            // 相邻滚轮停止间隔 1.0 秒
+// 三个滚轮的停止时刻：第 1 个 4.0 秒停，第 2 个 5.0 秒，第 3 个 6 秒
+const STOP_TIMES = [
+  TOTAL_SPIN - STOP_INTERVAL * 2,
+  TOTAL_SPIN - STOP_INTERVAL,
+  TOTAL_SPIN
+];
+const SPIN_TURNS = [6, 8, 10];        // 三个滚轮滚动的“整圈数”，越靠后转得越多
+
+/* ================================================================
+   三、音效
+   ================================================================ */
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+// 播放一个简单的合成音：频率从 f0 滑到 f1，带快速淡出包络避免爆音
+function playTone(f0, f1, duration, volume) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const now = audioCtx.currentTime;
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(f0, now);
+  osc.frequency.linearRampToValueAtTime(f1, now + duration);
+  gain.gain.setValueAtTime(volume, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + duration);
+}
+let lastTickTime = 0;                 // 全局节流：三个滚轮同时滴答时避免音效过密
+function sfxTick() {
+  const now = audioCtx ? audioCtx.currentTime : 0;
+  if (now - lastTickTime < 0.04) return;   // 40ms 内最多响一次滴答
+  lastTickTime = now;
+  playTone(1200, 850, 0.04, 0.07);
+}
+function sfxStop() { playTone(320, 120, 0.18, 0.22); }   // 某个滚轮停稳：低沉“咔哒”
+function sfxWin() {                                          // 全部结束：C-E-G-C 上行琶音
+  const notes = [523.25, 659.25, 783.99, 1046.5];
+  notes.forEach((f, i) =>
+    setTimeout(() => playTone(f, f, 0.25, 0.2), i * 150));
+}
+/* ================================================================
+   四、全局状态变量
+   ================================================================ */
+let currentRange = null;             // 当前选择的范围对象
+let reelItems = [[], [], []];        // 三个滚轮各自的词库
+let geometry = [null, null, null];   // 三个滚轮的尺寸信息（窗口高、格子元素等）
+let offsets = [0, 0, 0];             // 三个滚轮当前已经向下滚过的距离（px）
+let resultIndexes = [null, null, null]; // 抽完后三个滚轮停在的词下标（没抽过为 null）
+let answer = null;                   // 本轮抽中的角色对象（谜底）
+let state = "idle";                  // idle：空闲等待；spinning：抽奖中
+let startOffsets = [0, 0, 0];        // 本轮开始时各滚轮的距离
+let distances = [0, 0, 0];           // 本轮各滚轮总共要滚多远
+let startTime = 0;                   // 本轮开始的时间戳
+let rafId = null;                    // requestAnimationFrame 的编号
+let lastTickOffset = [0, 0, 0];      // 上次滴答声时各滚轮的位置
+let stopSounded = [false, false, false]; // 各滚轮停止音是否已响
+/* ================================================================
+   五、常用工具函数
+   ================================================================ */
+const $ = id => document.getElementById(id);
+// 缓动函数：开始快、结尾平滑减速（先快后慢才有“刹车感”）
+function easeOutCubic(p) { return 1 - Math.pow(1 - p, 3); }
+
+// 从一个范围自动收集三个滚轮的词库（按首次出现的顺序，自动去重）
+function buildReelItems(range) {
+  // 如果配置里手写了 reels，就直接用手写的
+  if (range.reels) return range.reels.map(list => list.slice());
+  const lists = [[], [], []];
+  range.characters.forEach(ch => {
+    ch.attrs.forEach((word, i) => {
+      if (!lists[i].includes(word)) lists[i].push(word);
+    });
+  });
+  return lists;
+}
+/* ================================================================
+   六、首页：生成范围卡片
+   ================================================================ */
+function renderHome() {
+  const box = $("rangeList");
+  box.innerHTML = "";
+  RANGES.forEach((range, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "range-card";
+    btn.innerHTML = range.name +
+      '<span class="count">共 ' + range.characters.length + ' 个角色</span>';
+    btn.addEventListener("click", () => enterRange(idx));
+    box.appendChild(btn);
+  });
+}
+/* ================================================================
+   七、进入 / 离开某个抽奖范围（IP）
+   ================================================================ */
+function enterRange(idx) {
+  currentRange = RANGES[idx];
+  reelItems = buildReelItems(currentRange);
+  // 切换这个 IP 的背景图（没配就恢复默认底色）
+  $("bgLayer").style.backgroundImage =
+    currentRange.background ? 'url("' + currentRange.background + '")' : "none";
+  // 标题、三行“左标签 + 右窗口”、底部专属提示语
+  $("gameTitle").textContent = currentRange.title;
+  $("gameTip").textContent = currentRange.tip || "";
+  const wrap = $("reelRows");
+  wrap.innerHTML = "";
+  for (let i = 0; i < 3; i++) {
+    const row = document.createElement("div");
+    row.className = "reel-row";
+    row.innerHTML =
+      '<div class="reel-label">' + currentRange.labels[i] + '</div>' +
+      '<div class="reel-window"><div class="reel-center"></div></div>';
+    wrap.appendChild(row);
+  }
+  // 重置状态
+  answer = null;
+  offsets = [0, 0, 0];
+  resultIndexes = [null, null, null];
+  state = "idle";
+  $("btnAnswer").disabled = true;
+  $("btnStart").disabled = false;
+  closePopup();
+  // 切换页面显示
+  $("homeScreen").classList.add("hidden");
+  $("gameScreen").classList.remove("hidden");
+  // 元素插入页面后构建滚轮，但初始只放“?”占位符，不显示格子（避免挤成一团）
+  for (let i = 0; i < 3; i++) {
+    rebuildReel(i);
+    const win = getWindowEl(i);
+    // 清掉可能残留的旧占位符，再加一个新的
+    win.querySelectorAll(".reel-placeholder").forEach(el => el.remove());
+    const ph = document.createElement("span");
+    ph.className = "reel-placeholder";
+    ph.textContent = "?";
+    win.appendChild(ph);
+  }
+}
+function goHome() {
+  // 返回首页：若正在抽奖，先停掉动画
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  state = "idle";
+  closePopup();
+  // 首页恢复默认背景
+  $("bgLayer").style.backgroundImage = "none";
+  $("gameScreen").classList.add("hidden");
+  $("homeScreen").classList.remove("hidden");
+}
+/* ================================================================
+   八、竖向滚轮的构建与逐帧渲染
+   ================================================================ */
+function getWindowEl(i) {
+  return $("reelRows").children[i].querySelector(".reel-window");
+}
+// （重新）构建第 i 个滚轮的格子
+function rebuildReel(i) {
+  const win = getWindowEl(i);
+  const items = reelItems[i];
+  const circumference = items.length * CELL_H;   // 滚过一整组词的长度
+  // 至少复制几份才能铺满“窗口 + 上下各留一格”
+  let repeat = Math.max(1, Math.ceil((WIN_H + 2 * CELL_H) / circumference));
+  const stripH = circumference * repeat;         // 取模周期
+  // 清掉旧格子，重新建
+  win.querySelectorAll(".reel-cell").forEach(el => el.remove());
+  const cells = [];
+  for (let c = 0; c < repeat; c++) {
+    for (let j = 0; j < items.length; j++) {
+      const p = j * CELL_H + c * circumference;   // 该格子在带子上的基准位置
+      const el = document.createElement("span");
+      el.className = "reel-cell";
+      el.textContent = items[j];
+      win.appendChild(el);
+      cells.push({ el: el, p: p });
+    }
+  }
+  geometry[i] = { centerY: WIN_H / 2, stripH: stripH, cells: cells };
+}
+// 按给定 offset 摆放第 i 个滚轮的所有格子（竖向 translateY）
+function renderReel(i, offset) {
+  const g = geometry[i];
+  g.cells.forEach(cell => {
+    // JS 对负数取模会得到负数，先加一个周期再取模，保证结果落在 [0, stripH)
+    let rel = ((cell.p - offset) % g.stripH + g.stripH) % g.stripH;
+    // 换算成“相对正中央”的位置（超过半圈就从另一边绕回来）
+    if (rel > g.stripH / 2) rel -= g.stripH;
+    const y = g.centerY + rel - CELL_H / 2;
+    cell.el.style.transform = "translate3d(0," + y + "px,0)";
+    // 只有停在正中央半格以内的词是抽中词，亮白显示；其余词全部灰色
+    if (Math.abs(rel) < CELL_H / 2) cell.el.classList.add("on");
+    else cell.el.classList.remove("on");
+  });
+}
+/* ================================================================
+   九、开始抽奖（核心！）
+   思路：点击的一瞬间先随机选定“谜底角色”→ 三个滚轮的结局就定了，
+   然后只是播放滚动动画，让它精准停在预定的格子上。
+   ================================================================ */
+function startSpin() {
+  if (state === "spinning" || !currentRange) return;
+  ensureAudio();                                // 在点击手势里初始化声音
+  // 1）先定谜底
+  const pool = currentRange.characters;
+  answer = pool[Math.floor(Math.random() * pool.length)];
+  // 2）算出每个滚轮要停在哪个下标，并计算滚动总距离
+  for (let i = 0; i < 3; i++) {
+    let idx = reelItems[i].indexOf(answer.attrs[i]);
+    // 防御：手写 reels 时漏了谜底的词，自动追加并重建该滚轮
+    if (idx < 0) {
+      reelItems[i].push(answer.attrs[i]);
+      idx = reelItems[i].length - 1;
+      rebuildReel(i);
+    }
+    resultIndexes[i] = idx;
+    const g = geometry[i];
+    const start = offsets[i];
+    const startMod = ((start % g.stripH) + g.stripH) % g.stripH;
+    // 从当前位置到目标格还差多远（保证停在正中央）
+    let delta = (idx * CELL_H - startMod + g.stripH) % g.stripH;
+    // 总距离 = 若干整圈 + 对齐距离
+    distances[i] = SPIN_TURNS[i] * g.stripH + delta;
+    startOffsets[i] = start;
+    // 取消该滚轮的“停稳发光”样式
+    $("reelRows").children[i].classList.remove("done");
+  }
+  // 3）移除“?”占位符，让格子淡入显示，准备滚动
+  for (let i = 0; i < 3; i++) {
+    const win = getWindowEl(i);
+    win.querySelectorAll(".reel-placeholder").forEach(el => el.remove());
+    win.querySelectorAll(".reel-cell").forEach(el => el.style.opacity = 1);
+  }
+  // 4）动画期间锁住按钮，重置音效计数
+  state = "spinning";
+  $("btnStart").disabled = true;
+  $("btnAnswer").disabled = true;
+  closePopup();
+  lastTickOffset = [0, 0, 0];
+  stopSounded = [false, false, false];
+  // 5）开动
+  startTime = performance.now();
+  rafId = requestAnimationFrame(frame);
+}
+// 每一帧执行
+function frame(now) {
+  const elapsed = (now - startTime) / 1000;
+  let allDone = true;
+  for (let i = 0; i < 3; i++) {
+    const progress = Math.min(elapsed / STOP_TIMES[i], 1);
+    const offset = startOffsets[i] + distances[i] * easeOutCubic(progress);
+    offsets[i] = offset;
+    renderReel(i, offset);
+    // 滴答声：每滚过一格（CELL_H）响一次，节奏自动由密变疏
+    while (offset - startOffsets[i] - lastTickOffset[i] >= CELL_H) {
+      lastTickOffset[i] += CELL_H;
+      sfxTick();
+    }
+    if (progress >= 1) {
+      // 这个滚轮停稳：发光 + 响一次咔哒
+      $("reelRows").children[i].classList.add("done");
+      if (!stopSounded[i]) {
+        stopSounded[i] = true;
+        sfxStop();
+      }
+    } else {
+      allDone = false;
+    }
+  }
+  if (allDone) {
+    finishSpin();
+  } else {
+    rafId = requestAnimationFrame(frame);
+  }
+}
+function finishSpin() {
+  state = "idle";
+  rafId = null;
+  $("btnStart").disabled = false;   // 可以再抽一次
+  $("btnAnswer").disabled = false;  // 谜底可以点了
+  sfxWin();                         // 中奖上行琶音
+}
+/* ================================================================
+   十、谜底弹窗
+   ================================================================ */
+function openAnswer() {
+  if (!answer) return;              // 还没抽过，不响应
+  $("popName").textContent = answer.name;
+  $("popText").textContent = answer.text;
+  const img = $("popImg");
+  const placeholder = $("popPlaceholder");
+  if (answer.image) {
+    // 有图片：显示图片
+    img.src = answer.image;
+    img.style.display = "block";
+    placeholder.style.display = "none";
+  } else {
+    // 没图片：隐藏图片，显示占位提示
+    img.removeAttribute("src");
+    img.style.display = "none";
+    placeholder.style.display = "flex";
+  }
+  $("overlay").classList.add("show");
+}
+function closePopup() {
+  $("overlay").classList.remove("show");
+}
+/* ================================================================
+   十一、事件绑定
+   ================================================================ */
+$("btnStart").addEventListener("click", startSpin);
+$("btnAnswer").addEventListener("click", openAnswer);
+$("btnBack").addEventListener("click", goHome);
+// 点弹窗外的暗色空白处关闭弹窗。
+// 统一用 click（按下+抬起都在遮罩上），手机 QQ/微信里最稳定。
+$("overlay").addEventListener("click", e => {
+  if (e.target === $("overlay")) closePopup();
+});
+/* ================================================================
+   十二、启动：渲染首页
+   ================================================================ */
+renderHome();
+</script>
+</body>
+</html>
