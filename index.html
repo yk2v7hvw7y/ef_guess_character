@@ -255,12 +255,6 @@
     font-size: 28px;
     margin: 10px 0 6px;
   }
-  #popText {
-    color: #f0f2ff;
-    font-size: 17px;
-    line-height: 1.6;
-    margin-bottom: 12px;
-  }
   #popHint { color: #969cb4; font-size: 14px; }
   /* 右下角版本号：确认手机上加载的是新文件时用 */
   #ver {
@@ -306,12 +300,11 @@
     <img id="popImg" alt="角色图片">
     <div id="popPlaceholder">（暂无图片）</div>
     <div id="popName"></div>
-    <div id="popText"></div>
     <div id="popHint">点击弹窗外空白处关闭</div>
   </div>
 </div>
 
-<div id="ver">v4</div>
+<div id="ver">v5</div>
 
 <script>
 "use strict";
@@ -347,66 +340,87 @@ const RANGES = [
     characters: [
       {
         name: "爱弥斯",
-        text: "星炬学院的偶像，隧者的共鸣者，同时也是你的家人",
         image: "assets/Aemeath.jpg",
         attrs: ["拉海洛", "粉毛+驾驶服+星星眼", "救世主+爱"]
       },
       {
         name: "守岸人",
-        text: "《海贼王》主角，梦想是成为海贼王，永远戴着一顶草帽。",
         image: null,
         attrs: ["日本", "草帽", "热血"]
       },
       {
         name: "皮卡丘",
-        text: "宝可梦系列的招牌电气鼠，放电时脸颊会冒出电火花。",
         image: null,
         attrs: ["日本", "黄色电气鼠", "呆萌"]
       },
       {
         name: "哪吒",
-        text: "脚踩风火轮、身披混天绫的少年战神，喊出“我命由我不由天”。",
         image: null,
         attrs: ["中国", "混天绫", "叛逆"]
       },
       {
         name: "蜘蛛侠",
-        text: "纽约街头荡着蛛丝飞来飞去的超级英雄，话多得停不下来。",
         image: null,
         attrs: ["美国", "紧身衣", "话痨"]
       }
     ]
   },
   {
-    name: "历史人物",
-    title: "历史人物 · 猜猜乐",
+    name: "月亮计划",
+    title: "月量计划·角色猜猜乐",
     background: null,                              // 例如 "assets/bg-history.jpg"
-    labels: ["朝代", "外貌", "性格"],
-    tip: "小提示：按朝代、外貌与性格抽丝剥茧，猜猜这位青史留名的人物究竟是谁？",
+    labels: ["主要出现作品", "所属", "相关言行"],
+    tip: "X",
     characters: [
       {
-        name: "李白",
-        text: "唐代诗仙，好酒任侠，让高力士脱靴、贺知章呼为谪仙人。",
+        name: "艾因",
         image: null,
-        attrs: ["唐朝", "佩剑", "豪放"]
+        attrs: ["脑叶公司", "L公司+光之种", "建立L公司+完成光之种计划"]
       },
       {
-        name: "诸葛亮",
-        text: "三国蜀汉丞相，羽扇纶巾，隆中一对便定下三分天下。",
+        name: "卡门",
         image: null,
-        attrs: ["三国", "羽扇", "谨慎"]
+        attrs: ["脑叶公司+废墟图书馆+边狱巴士", "光之种", "异想体之母+引导人们直面自我"]
       },
       {
-        name: "关羽",
-        text: "武圣关云长，丹凤眼、卧蚕眉，面如重枣，二尺长髯飘胸前。",
+        name: "安吉拉",
         image: null,
-        attrs: ["三国", "长髯", "忠义"]
+        attrs: ["脑叶公司+废墟图书馆", "L公司", "背叛光之种计划+建立图书馆+试图成为人类"]
       },
       {
-        name: "武松",
-        text: "梁山好汉，景阳冈上一顿拳脚打死吊睛白额大虫。",
+        name: "罗兰",
         image: null,
-        attrs: ["北宋", "打虎英雄", "勇猛"]
+        attrs: ["废墟图书馆", "图书馆", "一码归一码"]
+      },
+      {
+        name: "红姐",
+        image: null,
+        attrs: ["脑叶公司+废墟图书馆", "L公司", "血雾弥漫，尸横遍野"]
+      },
+      {
+        name: "贾丘/夫子/孔子/孔丘",
+        image: null,
+        attrs: ["边狱巴士", "小指", "一人守住铁槛寺+一棍五望击杀雷横"]
+      },
+      {
+        name: "里恩",
+        image: null,
+        attrs: ["边狱巴士", "食指+蜘蛛巢", "模仿漆黑噤默"]
+      },
+      {
+        name: "马蒂亚斯",
+        image: null,
+        attrs: ["边狱巴士", "中指+蜘蛛巢", "牺牲家人"]
+      },
+      {
+        name: "阿赖耶",
+        image: null,
+        attrs: ["边狱巴士", "良秀+蜘蛛巢", "我想要成为妈妈的妈妈"]
+      },
+      {
+        name: "瓦伦希娜",
+        image: null,
+        attrs: ["边狱巴士", "拇指+蜘蛛巢", "怎么，打不中吗？+心脏！给我瞄准心脏啊！"]
       }
     ]
   }
@@ -708,7 +722,6 @@ function finishSpin() {
 function openAnswer() {
   if (!answer) return;              // 还没抽过，不响应
   $("popName").textContent = answer.name;
-  $("popText").textContent = answer.text;
   const img = $("popImg");
   const placeholder = $("popPlaceholder");
   if (answer.image) {
