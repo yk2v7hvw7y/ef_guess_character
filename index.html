@@ -28,12 +28,14 @@
     background-position: center center;
     background-repeat: no-repeat;
   }
-  /* 背景图上的压暗遮罩：保证不管图多亮，上面的文字都看得清 */
+  /* 背景图上的压暗遮罩：保证不管图多亮，上面的文字都看得清。
+     不透明度用变量 --bg-dim 控制：首页 0.30（看清图），抽奖页 0.74（看清字），
+     数值在 0~1 之间，越小越透明、背景越亮 */
   #bgLayer::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: rgba(18, 20, 42, 0.74);
+    background: rgba(18, 20, 42, var(--bg-dim, 0.74));
   }
   /* 所有内容的舞台：要浮在背景层之上 */
   #app {
@@ -49,7 +51,7 @@
      ============================================================ */
   #homeScreen { padding-top: 30px; text-align: center; }
   #homeScreen h1 {
-    color: #ffc83c;                                    /* 金色标题 */
+    color: #000000;                                   /* 黑色标题 */
     font-size: clamp(28px, 6vw, 40px);
     margin-bottom: 8px;
   }
@@ -87,11 +89,13 @@
      ============================================================ */
   #gameTitle {
     text-align: center;
-    color: #ffc83c;
+    color: #000000;                                   /* 黑色标题 */
     font-size: clamp(22px, 5vw, 32px);
     margin: 14px 0 22px;
-    /* 文字加一点深色阴影 */
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    /* 黑色字在深色背景上容易糊，加一圈浅色描边光晕保证看得清 */
+    text-shadow:
+      0 0 4px rgba(255, 255, 255, 0.85),
+      0 1px 3px rgba(255, 255, 255, 0.6);
   }
   .reel-row {
     display: flex;
@@ -266,6 +270,26 @@
     font-size: 13px;
     text-shadow: 0 1px 3px #000;
   }
+
+  /* ============================================================
+     第五部分：手机竖屏时强制横屏显示
+     由 JS 给 body 加 .force-landscape 类触发，内部布局完全不变，
+     只是整个 body 被旋转 90°；宽高和 transform 数值由 JS 按屏幕
+     实际尺寸精确计算。电脑和手机横屏时不会触发。
+     ============================================================ */
+  body.force-landscape {
+    position: fixed;
+    top: 0;
+    left: 0;
+    margin: 0;
+    min-height: 0;                                    /* 覆盖全局 min-height:100%，否则高度会被顶回去 */
+    overflow: hidden;
+    transform-origin: top left;
+  }
+  /* 旋转后弹窗面板的“高度”方向对应屏幕短边，限制一下防止超出屏幕 */
+  body.force-landscape #panel {
+    max-height: 86vw;
+  }
 </style>
 </head>
 <body>
@@ -304,7 +328,7 @@
   </div>
 </div>
 
-<div id="ver">v5</div>
+<div id="ver">v10</div>
 
 <script>
 "use strict";
@@ -324,6 +348,16 @@
         不填或填 null 就是默认深蓝紫色背景。
      建议：图片用 jpg、竖屏比例（如 1080×1920），手机上铺满不变形。
    ================================================================ */
+/* ★ 首页（选择IP页面）背景图：
+     1) 把图片放进 assets 文件夹，比如 assets/bg-home.jpg；
+     2) 把下面的 null 改成图片路径（注意保留引号）：
+        const HOME_BACKGROUND = "assets/bg-home.jpg";
+     填 null 就是默认深蓝紫纯色背景。
+     建议：jpg 格式，横屏比例（如 1920×1080），单张 1MB 以内。 */
+const HOME_BACKGROUND = "assets/efback.jpg";
+/* 首页背景图上的压暗遮罩浓度：0 = 完全透明（图最亮），1 = 全黑（看不见图）。
+   觉得背景灰就调小（如 0.15），觉得标题刺眼看不清就调大（如 0.45）。 */
+const HOME_DIM = 0;
 const RANGES = [
   {
     // name：首页卡片上显示的名字
@@ -331,7 +365,7 @@ const RANGES = [
     // title：进入后页面顶部的标题
     title: "鸣潮·角色猜猜乐",
     // background：这个 IP 抽奖界面的背景图路径（没有就填 null）
-    background: null,                              // 例如 "assets/bg-anime.jpg"
+    background: "assets/efback.jpg",                              // 例如 "assets/bg-anime.jpg"
     // labels：三行滚轮左边的标签
     labels: ["地区", "外观", "性格"],
     // tip：这个 IP 抽奖界面最底部的专属提示语
@@ -398,7 +432,7 @@ const RANGES = [
   {
     name: "月亮计划",
     title: "月亮计划·角色猜猜乐",
-    background: null,                              // 例如 "assets/bg-history.jpg"
+    background: "assets/efback.jpg",                              // 例如 "assets/bg-history.jpg"
     labels: ["主要出现作品", "所属", "相关言行"],
     tip: "素材来源于网络，侵删",
     characters: [
@@ -462,7 +496,7 @@ const RANGES = [
   {
     name: "原神",
     title: "原神·角色猜猜乐",
-    background: null,                              // 例如 "assets/bg-history.jpg"
+    background: "assets/efback.jpg",                              // 例如 "assets/bg-history.jpg"
     labels: ["称号", "别号", "提示"],
     tip: "素材来源于网络，侵删",
     characters: [
@@ -632,6 +666,8 @@ function enterRange(idx) {
   // 切换这个 IP 的背景图（没配就恢复默认底色）
   $("bgLayer").style.backgroundImage =
     currentRange.background ? 'url("' + currentRange.background + '")' : "none";
+  // 抽奖页遮罩浓度：0 = 完全透明显示原图（和首页 HOME_DIM 一样，想压暗可改成 0.74）
+  document.body.style.setProperty("--bg-dim", "0");
   // 标题、三行“左标签 + 右窗口”、底部专属提示语
   $("gameTitle").textContent = currentRange.title;
   $("gameTip").textContent = currentRange.tip || "";
@@ -667,6 +703,7 @@ function enterRange(idx) {
     ph.textContent = "?";
     win.appendChild(ph);
   }
+  fitLandscape();                    // 页面高度变了，重新计算横屏缩放
 }
 function goHome() {
   // 返回首页：若正在抽奖，先停掉动画
@@ -674,10 +711,13 @@ function goHome() {
   rafId = null;
   state = "idle";
   closePopup();
-  // 首页恢复默认背景
-  $("bgLayer").style.backgroundImage = "none";
+  // 首页恢复首页背景图（没配就是默认底色）和首页遮罩浓度
+  $("bgLayer").style.backgroundImage =
+    HOME_BACKGROUND ? 'url("' + HOME_BACKGROUND + '")' : "none";
+  document.body.style.setProperty("--bg-dim", HOME_DIM);
   $("gameScreen").classList.add("hidden");
   $("homeScreen").classList.remove("hidden");
+  fitLandscape();                    // 页面高度变了，重新计算横屏缩放
 }
 /* ================================================================
    八、竖向滚轮的构建与逐帧渲染
@@ -846,9 +886,53 @@ $("overlay").addEventListener("click", e => {
   if (e.target === $("overlay")) closePopup();
 });
 /* ================================================================
-   十二、启动：渲染首页
+   十二、手机竖屏时强制横屏显示（不改任何界面布局）
+   原理：竖屏时把整个 body 旋转 90°，内容永远保持横屏方向；
+   内容偏高时整体等比缩小到刚好放下（只是缩放，不是改布局）；
+   手机横过来（横屏方向）后自动撤销，恢复正常显示。
+   ================================================================ */
+function fitLandscape() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  // 只在“触摸屏设备 + 竖屏”时启用；电脑或手机横屏时不做任何处理
+  const needRotate = window.matchMedia("(pointer: coarse)").matches && vh > vw;
+  const body = document.body;
+  if (!needRotate) {
+    body.classList.remove("force-landscape");
+    body.style.width = "";
+    body.style.height = "";
+    body.style.transform = "";
+    document.documentElement.style.overflow = "";
+    return;
+  }
+  body.classList.add("force-landscape");
+  document.documentElement.style.overflow = "hidden";
+  // 第一步：旋转后可视宽度 = 屏幕高 vh，先把 body 设成这个宽度，
+  // 量出内容在此宽度下的真实高度
+  body.style.width = vh + "px";
+  const contentH = $("app").offsetHeight + 24;      // 24 = body 上下 padding
+  // 第二步：旋转后可用的“高度”只有屏幕宽 vw，内容更高就整体等比缩小
+  const k = Math.min(1, vw / contentH);
+  body.style.width = (vh / k) + "px";
+  body.style.height = (vw / k) + "px";
+  // 平移 + 旋转 + 缩放：让画面刚好铺满整个竖屏（transform-origin 在左上角）
+  body.style.transform =
+    "translateX(" + vw + "px) rotate(90deg) scale(" + k + ")";
+}
+window.addEventListener("resize", fitLandscape);
+window.addEventListener("orientationchange", () => {
+  fitLandscape();
+  setTimeout(fitLandscape, 300);          // 部分手机浏览器转屏后尺寸更新有延迟
+});
+/* ================================================================
+   十三、启动：渲染首页
    ================================================================ */
 renderHome();
+// 页面一打开就应用首页背景图（没配则保持默认底色）和首页遮罩浓度
+$("bgLayer").style.backgroundImage =
+  HOME_BACKGROUND ? 'url("' + HOME_BACKGROUND + '")' : "none";
+document.body.style.setProperty("--bg-dim", HOME_DIM);
+fitLandscape();
 </script>
 </body>
 </html>
