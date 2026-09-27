@@ -179,24 +179,32 @@
     justify-content: space-around;
     margin-top: 26px;
   }
+  /* 底部三个图片按钮：push_button.png 做底图（透明底像素框），文字叠在中间浅色区域。
+     以后做了三张专属图，可分别用 #btnStart/#btnAnswer/#btnBack 单独换背景 */
   .oval-btn {
-    min-width: 26%;
-    padding: 13px 10px;
-    border-radius: 999px;                             /* 胶囊椭圆 */
-    border: 2px solid #ffc83c;
-    background: #e65a5a;
-    color: #fff;
-    font-size: clamp(17px, 4vw, 21px);
+    width: 28%;
+    max-width: 200px;
+    aspect-ratio: 1292 / 727;                        /* 与底图同比例，不变形 */
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: url("assets/push_button.png") center/100% 100% no-repeat;
+    background-color: transparent;
+    color: #23243a;                                   /* 深色字，压在浅色按钮面上 */
+    font-size: clamp(16px, 3.6vw, 22px);
     font-weight: bold;
+    letter-spacing: 2px;
     cursor: pointer;
     touch-action: manipulation;
+    transition: transform 0.08s ease, filter 0.1s ease;
   }
-  .oval-btn:active { filter: brightness(1.15); }
-  /* 谜底按钮：没抽完之前是灰色不可点 */
+  .oval-btn:active {
+    transform: scale(0.93);                           /* 按下去缩一下，像真按钮 */
+    filter: brightness(0.92);
+  }
+  /* 谜底按钮：没抽完之前图片变灰不可点 */
   .oval-btn:disabled {
-    background: #5a5f78;
-    border-color: #6a708f;
-    color: #c6cadb;
+    filter: grayscale(1) opacity(0.55);
     cursor: not-allowed;
   }
   /* 每个 IP 抽奖界面底部的专属提示语（每个界面内容不同） */
@@ -260,7 +268,67 @@
     margin: 10px 0 6px;
   }
   #popHint { color: #969cb4; font-size: 14px; }
-  /* 右下角版本号：确认手机上加载的是新文件时用 */
+
+  /* ---- 开发者验证弹窗（点右下角版本号触发）---- */
+  #devOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+  }
+  #devOverlay.show { display: flex; }
+  #devPanel {
+    width: 300px;
+    max-width: 86%;
+    background: #262a48;
+    border: 2px solid #ffc83c;
+    border-radius: 12px;
+    padding: 18px 16px;
+    text-align: center;
+  }
+  .dev-title {
+    color: #ffc83c;
+    font-weight: bold;
+    font-size: 17px;
+    margin-bottom: 12px;
+  }
+  #devPwd {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #5a5f78;
+    background: #181a30;
+    color: #f0f2ff;
+    font-size: 16px;
+    outline: none;
+  }
+  #devPwd:focus { border-color: #ffc83c; }
+  #devErr {
+    min-height: 20px;
+    margin-top: 8px;
+    color: #ff6b6b;
+    font-size: 13px;
+  }
+  .dev-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .dev-btns button {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 8px;
+    border: 1px solid #ffc83c;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  #devOk { background: #ffc83c; color: #262a48; }
+  #devCancel { background: transparent; color: #c6cadb; }
+  /* 右下角版本号：外观隐蔽，但可点击唤起开发者验证 */
   #ver {
     position: fixed;
     right: 10px;
@@ -269,6 +337,9 @@
     color: #aab0cc;
     font-size: 13px;
     text-shadow: 0 1px 3px #000;
+    cursor: pointer;                              /* 鼠标悬停显示小手，外观不变 */
+    user-select: none;                           /* 防止连点时选中文字 */
+    -webkit-tap-highlight-color: transparent;    /* 手机点击不出现蓝块 */
   }
 
   /* ============================================================
@@ -328,7 +399,20 @@
   </div>
 </div>
 
-<div id="ver">v10</div>
+<!-- ============ 开发者验证弹窗（点右下角版本号唤起，默认隐藏） ============ -->
+<div id="devOverlay">
+  <div id="devPanel">
+    <div class="dev-title">开发者验证</div>
+    <input type="password" id="devPwd" placeholder="请输入密码" autocomplete="off">
+    <div id="devErr"></div>
+    <div class="dev-btns">
+      <button id="devOk">确定</button>
+      <button id="devCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<div id="ver">v11</div>
 
 <script>
 "use strict";
@@ -549,6 +633,99 @@ const RANGES = [
         name: "戴因斯雷布",
         image: "assets/Dainsleif.jpg",
         attrs: ["未来与过去的节点", "疑似第六大罪人", "最爱坎瑞亚之人"]
+      }
+    ]
+  },
+  {
+    name: "咒术回战",
+    title: "咒术回战·角色猜猜乐",
+    background: "assets/efback.jpg",                              
+    labels: ["种族", "战绩", "性格"],
+    tip: "素材来源于网络，侵删",
+    characters: [
+      {
+        name: "五条悟",
+        image: "assets/Satoru_Gojo.jpg",
+        attrs: ["人类", "击杀甚尔+重创宿傩", "伟大+理性+智慧"]
+      },
+      {
+        name: "夏油杰",
+        image: "assets/Suguru_Geto.jpg",
+        attrs: ["人类", "发动涩谷事变", "认真+傲慢+黑暗"]
+      },
+      {
+        name: "虎杖悠仁",
+        image: "assets/Yuji_Itadori.jpg",
+        attrs: ["人类", "八连黑闪+击败宿傩", "激情+仁爱"]
+      },
+      {
+        name: "秤金次",
+        image: "assets/Kinji_Hakari.jpg",
+        attrs: ["人类", "击败鹿紫云一", "赌徒+疯狂"]
+      },
+      {
+        name: "东堂葵",
+        image: "assets/Aoi_Todo.jpg",
+        attrs: ["人类", "辅助击败真人+辅助击败宿傩", "压力自己和别人+智慧"]
+      },
+      {
+        name: "两面宿傩",
+        image: "assets/Ryomen_Sukuna.jpg",
+        attrs: ["受肉体", "击杀五条悟", "狂妄+血性+傲慢"]
+      },
+      {
+        name: "乙骨忧太",
+        image: "assets/Yuta_Okkotsu.jpg",
+        attrs: ["人类", "重创夏油杰+仙台1v4+击杀羂索", "纯爱+认真"]
+      },
+      {
+        name: "羂索",
+        image: "assets/Kenjaku.jpg",
+        attrs: ["无法归类", "封印五条悟+夺取天元", "狡诈+自私"]
+      },
+      {
+        name: "伏黑甚尔",
+        image: "assets/Toji_Fushiguro.jpg",
+        attrs: ["人类", "差点击杀五条悟", "狂妄+杀手血性+亲情"]
+      }
+    ]
+  },
+  {
+    name: "崩坏3",
+    title: "崩坏3·角色猜猜乐",
+    background: "assets/efback.jpg",                              
+    labels: ["性格", "重大事件", "台词"],
+    tip: "素材来源于网络，侵删",
+    characters: [
+      {
+        name: "琪亚娜",
+        image: "assets/Kiana_Kaslana.jpg",
+        attrs: ["激情+乐观+永不言败", "困于空律+觉醒薪炎+夺取终焉", "为世界上所有的美好而战"]
+      },
+      {
+        name: "芽衣",
+        image: "assets/Raiden_Mei.jpg",
+        attrs: ["贤惠+认真+守护", "觉醒雷律+进入往世乐土+继承始源", "比起这个世界，你更重要！"]
+      },
+      {
+        name: "布洛妮娅",
+        image: "assets/Bronya_Zaychik.jpg",
+        attrs: ["工作狂+活泼", "觉醒理律+成就真理+创业开发游戏", "重装小兔"]
+      },
+      {
+        name: "希儿",
+        image: "assets/Seele_Vollerei.jpg",
+        attrs: ["仁爱/腹黑+天真/傲娇", "觉醒双重人格+锤爆量子之海+击败挲", "拜托了，另一个我！"]
+      },
+      {
+        name: "爱莉希雅",
+        image: "assets/Elysia.jpg",
+        attrs: ["人爱世人", "纯洁无暇的少女+花与飞鸟相伴+为人类牺牲", "这是因你而在的故事"]
+      },
+      {
+        name: "奥托",
+        image: "assets/Otto.jpg",
+        attrs: ["纯爱+疯狂+自私+智慧", "主宰天命+改写虚数之树", "墓志铭太短，此生太长"]
       }
     ]
   }
@@ -884,6 +1061,61 @@ $("btnBack").addEventListener("click", goHome);
 // 统一用 click（按下+抬起都在遮罩上），手机 QQ/微信里最稳定。
 $("overlay").addEventListener("click", e => {
   if (e.target === $("overlay")) closePopup();
+});
+
+/* ================================================================
+   十一·补、开发者验证（点右下角版本号唤起）
+   安全说明：网页里只存密码的 SHA-256 哈希值，不存明文；
+   输入密码后现场算哈希再比对。注意纯前端校验只能防普通玩家
+   随手翻源码，懂技术的人仍可绕过，不能当作真正的安全防线。
+   ================================================================ */
+// 密码 soundofautumnbuttearinwinter 的 SHA-256（64 位十六进制）
+const DEV_HASH = "877a65e9c3229ad9618886aabbdaa10c91b464b541bbf04ec445da31702b22c9";
+// 用浏览器内置加密接口算 SHA-256，返回十六进制字符串
+async function sha256Hex(text) {
+  const data = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+function openDev() {
+  $("devErr").textContent = "";
+  $("devPwd").value = "";
+  $("devOverlay").classList.add("show");
+  $("devPwd").focus();
+}
+function closeDev() {
+  $("devOverlay").classList.remove("show");
+}
+async function verifyDev() {
+  // file:// 或个别老浏览器可能没有 crypto.subtle
+  if (!window.crypto || !crypto.subtle) {
+    $("devErr").textContent = "当前浏览器不支持校验";
+    return;
+  }
+  const input = $("devPwd").value;
+  if (!input) { $("devErr").textContent = "请输入密码"; return; }
+  const hash = await sha256Hex(input);
+  if (hash === DEV_HASH) {
+    closeDev();
+    alert("欢迎开发者--秋鸣");
+  } else {
+    $("devErr").textContent = "密码错误，请重试";
+    $("devPwd").value = "";
+    $("devPwd").focus();
+  }
+}
+$("ver").addEventListener("click", openDev);
+$("devOk").addEventListener("click", verifyDev);
+$("devCancel").addEventListener("click", closeDev);
+// 密码框里按回车 = 点确定
+$("devPwd").addEventListener("keydown", e => {
+  if (e.key === "Enter") verifyDev();
+});
+// 点验证弹窗外面的暗色区域关闭
+$("devOverlay").addEventListener("click", e => {
+  if (e.target === $("devOverlay")) closeDev();
 });
 /* ================================================================
    十二、手机竖屏时强制横屏显示（不改任何界面布局）
