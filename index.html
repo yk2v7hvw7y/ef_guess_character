@@ -49,16 +49,40 @@
   /* ============================================================
      第二部分：首页（选择IP）
      ============================================================ */
-  #homeScreen { padding-top: 30px; text-align: center; }
-  #homeScreen h1 {
-    color: #000000;                                   /* 黑色标题 */
-    font-size: clamp(28px, 6vw, 40px);
-    margin-bottom: 8px;
+  /* 首页整屏高度 + 纵向 flex 布局：标题和副标题固定在上方不动，
+     只有下面的 IP 列表（#rangeList）内部滚动 */
+  #homeScreen {
+    padding-top: 30px;
+    text-align: center;
+    height: calc(100vh - 24px);                     /* 24 = body 上下 padding */
+    height: calc(100dvh - 24px);                    /* 手机浏览器用动态视口高，更准；不支持的浏览器会自动用上一行 */
+    display: flex;
+    flex-direction: column;
+  }
+  /* 首页标题图片：原图 606×162，宽度不超过原图，避免放大模糊。
+     注意：图里的「角色猜猜乐」并不在图的正中央——实测其中心在 x=348，
+     比图中心 303 偏右 45px（45/606 ≈ 7.43%）。所以先用 margin:auto 把
+     图片整体居中，再向左平移这 7.43%，文字中心才和下方「请选择IP」对齐。
+     用百分比而不是 45px：图片宽度随屏幕变化，百分比才能等比补偿。
+     （这里不能用 align-items:center，否则 IP 列表会跟着缩窄） */
+  #titleImg {
+    display: block;
+    width: 90%;
+    max-width: 606px;
+    height: auto;
+    margin: 0 auto 8px;
+    transform: translateX(-7.43%);
   }
   #homeScreen .sub {
     color: #c6cadb;
     font-size: clamp(15px, 3vw, 18px);
     margin-bottom: 28px;
+  }
+  /* IP 列表：占满标题以下的剩余空间，卡片多了就在这个区域内部滚动 */
+  #rangeList {
+    flex: 1;
+    min-height: 0;                                  /* flex 子元素想内部滚动，必须加这一行 */
+    overflow-y: auto;
   }
   /* 范围卡片：用按钮做，整块都可以点 */
   .range-card {
@@ -179,8 +203,8 @@
     justify-content: space-around;
     margin-top: 26px;
   }
-  /* 底部三个图片按钮：push_button.png 做底图（透明底像素框），文字叠在中间浅色区域。
-     以后做了三张专属图，可分别用 #btnStart/#btnAnswer/#btnBack 单独换背景 */
+  /* 底部三个图片按钮：三张专属图（图上已自带“开始/谜底/返回”文字），
+     按钮本身不再显示文字，只负责把图片铺满 */
   .oval-btn {
     width: 28%;
     max-width: 200px;
@@ -188,16 +212,18 @@
     padding: 0;
     border: none;
     border-radius: 0;
-    background: url("assets/push_button.png") center/100% 100% no-repeat;
     background-color: transparent;
-    color: #23243a;                                   /* 深色字，压在浅色按钮面上 */
-    font-size: clamp(16px, 3.6vw, 22px);
-    font-weight: bold;
-    letter-spacing: 2px;
+    background-position: center;
+    background-size: 100% 100%;                      /* 等比铺满按钮区域 */
+    background-repeat: no-repeat;
     cursor: pointer;
     touch-action: manipulation;
     transition: transform 0.08s ease, filter 0.1s ease;
   }
+  /* 三个按钮各自的图片 */
+  #btnStart { background-image: url("assets/push_button_start.png"); }
+  #btnAnswer { background-image: url("assets/push_button_answer.png"); }
+  #btnBack { background-image: url("assets/push_button_back.png"); }
   .oval-btn:active {
     transform: scale(0.93);                           /* 按下去缩一下，像真按钮 */
     filter: brightness(0.92);
@@ -232,8 +258,9 @@
     overscroll-behavior: contain;
   }
   #overlay.show { display: flex; }
+  /* 谜底弹窗：恢复居中面板样式后，宽度再次扩大到 1140px（旧版 380px 的 3 倍） */
   #panel {
-    width: 380px;
+    width: 1140px;
     max-width: 90%;
     max-height: 90vh;
     overflow-y: auto;                                 /* 内容太长时面板内部滚动 */
@@ -246,13 +273,13 @@
   }
   #popImg {
     max-width: 100%;
-    max-height: 240px;
+    max-height: 480px;                                /* 旧版 240px 的 2 倍 */
     border-radius: 10px;
     display: none;                                    /* 没图时隐藏 */
     margin: 0 auto;
   }
   #popPlaceholder {
-    height: 160px;
+    height: 320px;                                    /* 旧版 160px 的 2 倍 */
     display: none;                                    /* 没图时显示 */
     align-items: center;
     justify-content: center;
@@ -361,6 +388,10 @@
   body.force-landscape #panel {
     max-height: 86vw;
   }
+  /* 强制横屏时 body 高度由 JS 精确设定，补上 100% 高度链，
+     让首页“标题固定 + 列表滚动”在旋转模式下同样生效 */
+  body.force-landscape #app { height: 100%; }
+  body.force-landscape #homeScreen { height: 100%; }
 </style>
 </head>
 <body>
@@ -369,7 +400,7 @@
 <div id="app">
   <!-- ============ 第一个界面：选择IP ============ -->
   <section id="homeScreen">
-    <h1>翼遥动漫社-角色猜猜乐</h1>
+    <img id="titleImg" src="assets/title.png" alt="翼遥动漫社-角色猜猜乐">
     <p class="sub">请选择IP</p>
     <div id="rangeList"></div>
   </section>
@@ -381,9 +412,9 @@
       <!-- 三行“左标签 + 右窗口”，窗口内词条上下滚动；由 JS 根据当前范围自动生成 -->
     </div>
     <div class="btn-bar">
-      <button class="oval-btn" id="btnStart">开始</button>
-      <button class="oval-btn" id="btnAnswer" disabled>谜底</button>
-      <button class="oval-btn" id="btnBack">返回</button>
+      <button class="oval-btn" id="btnStart" aria-label="开始"></button>
+      <button class="oval-btn" id="btnAnswer" aria-label="谜底" disabled></button>
+      <button class="oval-btn" id="btnBack" aria-label="返回"></button>
     </div>
     <!-- 这个 IP 专属的底部提示语，由 JS 从 range.tip 填入 -->
     <p id="gameTip"></p>
@@ -395,7 +426,7 @@
     <img id="popImg" alt="角色图片">
     <div id="popPlaceholder">（暂无图片）</div>
     <div id="popName"></div>
-    <div id="popHint">点击弹窗外空白处关闭</div>
+    <div id="popHint">点击图片外空白处关闭</div>
   </div>
 </div>
 
@@ -412,7 +443,7 @@
   </div>
 </div>
 
-<div id="ver">v11</div>
+<div id="ver">v17</div>
 
 <script>
 "use strict";
@@ -902,10 +933,56 @@ function sfxTick() {
   playTone(1200, 850, 0.04, 0.07);
 }
 function sfxStop() { playTone(320, 120, 0.18, 0.22); }   // 某个滚轮停稳：低沉“咔哒”
-function sfxWin() {                                          // 全部结束：C-E-G-C 上行琶音
-  const notes = [523.25, 659.25, 783.99, 1046.5];
-  notes.forEach((f, i) =>
-    setTimeout(() => playTone(f, f, 0.25, 0.2), i * 150));
+/* ---- 进入 IP 音效：assets/Ciallo.mp3 ---- */
+let cialloSfx = null;
+function getCiallo() {
+  if (!cialloSfx) {
+    cialloSfx = new Audio("assets/Ciallo.mp3");
+    cialloSfx.preload = "auto";
+  }
+  return cialloSfx;
+}
+// 在首页点击 IP 卡片时从头播放 Ciallo.mp3（点击即用户手势，手机浏览器允许直接播放）
+function playCiallo() {
+  const a = getCiallo();
+  a.muted = false;
+  a.currentTime = 0;
+  const p = a.play();
+  if (p && p.catch) p.catch(() => {});   // 播放失败就静默忽略
+}
+/* ---- 抽奖进行中的循环音效：assets/happy.mp3 ---- */
+let happySfx = null;
+function getHappy() {
+  if (!happySfx) {
+    happySfx = new Audio("assets/happy.mp3");
+    happySfx.preload = "auto";
+    happySfx.loop = true;               // 关键：循环播放，直到抽奖结束
+  }
+  return happySfx;
+}
+// 开始抽奖时从头循环播放（在“开始”点击手势里调用，手机浏览器允许立即播放）
+function playHappy() {
+  const a = getHappy();
+  a.currentTime = 0;
+  const p = a.play();
+  if (p && p.catch) p.catch(() => {});
+}
+// 停止循环音效：抽奖结束或中途返回首页时调用
+function stopHappy() {
+  if (!happySfx) return;
+  happySfx.pause();
+  happySfx.currentTime = 0;
+}
+/* ---- 谜底音效：assets/fish.mp3，每次点“谜底”播放 1 次 ---- */
+let fishSfx = null;
+function playFish() {
+  if (!fishSfx) {
+    fishSfx = new Audio("assets/fish.mp3");
+    fishSfx.preload = "auto";
+  }
+  fishSfx.currentTime = 0;            // 重复点击时从头开始
+  const p = fishSfx.play();
+  if (p && p.catch) p.catch(() => {});
 }
 /* ================================================================
    四、全局状态变量
@@ -961,6 +1038,7 @@ function renderHome() {
    七、进入 / 离开某个抽奖范围（IP）
    ================================================================ */
 function enterRange(idx) {
+  playCiallo();                       // 首页点击 IP 后播放 Ciallo.mp3
   currentRange = RANGES[idx];
   reelItems = buildReelItems(currentRange);
   // 切换这个 IP 的背景图（没配就恢复默认底色）
@@ -1010,6 +1088,7 @@ function goHome() {
   if (rafId) cancelAnimationFrame(rafId);
   rafId = null;
   state = "idle";
+  stopHappy();                       // 抽奖中途点“返回”时也要停掉循环音效
   closePopup();
   // 首页恢复首页背景图（没配就是默认底色）和首页遮罩浓度
   $("bgLayer").style.backgroundImage =
@@ -1071,6 +1150,7 @@ function renderReel(i, offset) {
 function startSpin() {
   if (state === "spinning" || !currentRange) return;
   ensureAudio();                                // 在点击手势里初始化声音
+  playHappy();                                  // 抽奖期间循环播放 happy.mp3
   // 1）先定谜底
   const pool = currentRange.characters;
   answer = pool[Math.floor(Math.random() * pool.length)];
@@ -1146,15 +1226,16 @@ function frame(now) {
 function finishSpin() {
   state = "idle";
   rafId = null;
+  stopHappy();                       // 抽奖结束：停掉循环的 happy.mp3
   $("btnStart").disabled = false;   // 可以再抽一次
   $("btnAnswer").disabled = false;  // 谜底可以点了
-  sfxWin();                         // 中奖上行琶音
 }
 /* ================================================================
    十、谜底弹窗
    ================================================================ */
 function openAnswer() {
   if (!answer) return;              // 还没抽过，不响应
+  playFish();                       // 点“谜底”时播放 1 次 fish.mp3
   $("popName").textContent = answer.name;
   const img = $("popImg");
   const placeholder = $("popPlaceholder");
@@ -1265,9 +1346,12 @@ function fitLandscape() {
   // 第一步：旋转后可视宽度 = 屏幕高 vh，先把 body 设成这个宽度，
   // 量出内容在此宽度下的真实高度
   body.style.width = vh + "px";
+  // 首页是“标题固定 + 列表内部滚动”的整屏布局，不需要按内容高度缩放，
+  // 直接 k=1 填满屏幕即可；抽奖页仍按内容真实高度计算缩放
+  const homeVisible = !$("homeScreen").classList.contains("hidden");
   const contentH = $("app").offsetHeight + 24;      // 24 = body 上下 padding
   // 第二步：旋转后可用的“高度”只有屏幕宽 vw，内容更高就整体等比缩小
-  const k = Math.min(1, vw / contentH);
+  const k = homeVisible ? 1 : Math.min(1, vw / contentH);
   body.style.width = (vh / k) + "px";
   body.style.height = (vw / k) + "px";
   // 平移 + 旋转 + 缩放：让画面刚好铺满整个竖屏（transform-origin 在左上角）
