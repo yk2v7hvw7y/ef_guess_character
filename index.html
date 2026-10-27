@@ -1570,6 +1570,7 @@ function fitLandscape() {
     body.style.width = "";
     body.style.height = "";
     body.style.transform = "";
+    $("app").style.maxWidth = "";                   // 清掉旋转模式设置的列宽限制
     document.documentElement.style.overflow = "";
     /* 桌面端抽奖页防溢出：窗口太矮时把整个抽奖页等比压缩（zoom），
        保证三个按钮和提示语始终可见。
@@ -1612,9 +1613,17 @@ function fitLandscape() {
   // 首页是“标题固定 + 列表内部滚动”的整屏布局，不需要按内容高度缩放，
   // 直接 k=1 填满屏幕即可；抽奖页仍按内容真实高度计算缩放
   const homeVisible = !$("homeScreen").classList.contains("hidden");
-  const contentH = $("app").offsetHeight + 24;      // 24 = body 上下 padding
-  // 第二步：旋转后可用的“高度”只有屏幕宽 vw，内容更高就整体等比缩小
-  const k = homeVisible ? 1 : Math.min(1, vw / contentH);
+  /* 关键：k<1 整体缩小时，居中的 760px 内容列如果不跟着收窄，
+     缩放后它会比屏幕（vw）还宽，滚轮两侧被裁掉、显得巨大。
+     所以内容列最大宽度必须同步压到 vw/k（= body 的逻辑高度），
+     并迭代两轮——列宽变了文字会重新折行，内容高度随之变化 */
+  const app = $("app");
+  let k = 1;
+  for (let i = 0; i < 2; i++) {
+    app.style.maxWidth = Math.min(760, vw / k) + "px";
+    const contentH = app.offsetHeight + 24;         // 24 = body 上下 padding
+    k = homeVisible ? 1 : Math.min(1, vw / Math.max(contentH, 1));
+  }
   body.style.width = (vh / k) + "px";
   body.style.height = (vw / k) + "px";
   // 平移 + 旋转 + 缩放：让画面刚好铺满整个竖屏（transform-origin 在左上角）
