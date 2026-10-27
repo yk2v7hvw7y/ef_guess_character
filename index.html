@@ -38,14 +38,12 @@
     background-position: center center;
     background-repeat: no-repeat;
   }
-  /* 强制横屏时 body 有 transform，fixed 元素的 containing block 变成了 body
-     （而 body 又被旋转+缩放了），这时 bgLayer 只靠 inset:0 会比物理屏幕小一圈，
-     所以要向四周扩出 200vw/200vh 才能盖住整个屏幕。
-     电脑端不走 force-landscape，保持上面的 inset:0 原样，避免 background-size:cover
-     把图放大过多 */
+  /* 强制横屏时 body 被 JS 精确设为旋转后的屏幕大小，且 body 有 transform，
+     fixed 元素（bgLayer/overlay）的 containing block 就是 body 本身，
+     所以 inset:0 正好等于旋转后的可视区域，直接铺满即可，
+     不需要也不能向外扩圈——扩圈会让 cover 背景图放大数倍只露出中间一截 */
   body.force-landscape #bgLayer {
-    inset: auto; left: -200vw; top: -200vh;
-    width: calc(100% + 400vw); height: calc(100% + 400vh);
+    inset: 0;
   }
   /* 背景图上的压暗遮罩：跟着 bgLayer 一起铺满 */
   #bgLayer::after {
@@ -105,7 +103,8 @@
   .range-card {
     display: block;
     width: 100%;
-    margin-bottom: 16px;
+    max-width: 520px;                               /* 手机强制横屏时布局宽度可能被拉得很宽，限住卡片不让按钮巨大 */
+    margin: 0 auto 16px;
     padding: 22px 18px;
     background: rgba(38, 42, 72, 0.92);
     border: 2px solid #ffc83c;
@@ -277,8 +276,7 @@
     overscroll-behavior: contain;
   }
   body.force-landscape #overlay {
-    inset: auto; left: -200vw; top: -200vh;
-    width: calc(100% + 400vw); height: calc(100% + 400vh);
+    inset: 0;
   }
   #overlay.show { display: flex; }
   /* 谜底弹窗：恢复居中面板样式后，宽度再次扩大到 1140px（旧版 380px 的 3 倍） */
@@ -330,8 +328,7 @@
     z-index: 20;
   }
   body.force-landscape #devOverlay {
-    inset: auto; left: -200vw; top: -200vh;
-    width: calc(100% + 400vw); height: calc(100% + 400vh);
+    inset: 0;
   }
   #devOverlay.show { display: flex; }
   #devPanel {
@@ -419,14 +416,9 @@
      让首页“标题固定 + 列表滚动”在旋转模式下同样生效 */
   body.force-landscape #app { height: 100%; }
   body.force-landscape #homeScreen { height: 100%; }
-  /* 强制横屏时 body rotate(90deg)，title.png 里的横向英文
-     "EF ANIME CLUB" 被旋成竖向读。给它反向 rotate(-90deg)
-     抵消角度即可——body 的 translateX(vw) 和 scale(k) 自动继承，
-     title.png 自然跟着居中，不需要额外补偿 */
-  body.force-landscape #titleImg {
-    transform: rotate(-90deg);
-    transform-origin: center;
-  }
+  /* 强制横屏时标题图随 body 一起旋转 90°，与页面其他内容方向保持一致，
+     用户把手机横过来后整页文字方向统一。不做反向旋转，
+     否则标题横躺而其它内容竖排，画面看起来错乱 */
 </style>
 </head>
 <body>
