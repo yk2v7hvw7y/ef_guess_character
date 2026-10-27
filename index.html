@@ -1607,23 +1607,17 @@ function fitLandscape() {
   gs.style.zoom = "";
   gs.style.height = "";
   document.documentElement.style.setProperty("--gz", 1);
-  // 第一步：旋转后可视宽度 = 屏幕高 vh，先把 body 设成这个宽度，
-  // 量出内容在此宽度下的真实高度
+  // 第一步：旋转后可视宽度 = 屏幕高 vh，先把 body 设成这个宽度；
+  // 高度先按 k=1 预设，让首页“高度:100%”链生效、列表内部滚动成立
   body.style.width = vh + "px";
-  // 首页是“标题固定 + 列表内部滚动”的整屏布局，不需要按内容高度缩放，
-  // 直接 k=1 填满屏幕即可；抽奖页仍按内容真实高度计算缩放
-  const homeVisible = !$("homeScreen").classList.contains("hidden");
-  /* 关键：k<1 整体缩小时，居中的 760px 内容列如果不跟着收窄，
-     缩放后它会比屏幕（vw）还宽，滚轮两侧被裁掉、显得巨大。
-     所以内容列最大宽度必须同步压到 vw/k（= body 的逻辑高度），
-     并迭代两轮——列宽变了文字会重新折行，内容高度随之变化 */
-  const app = $("app");
-  let k = 1;
-  for (let i = 0; i < 2; i++) {
-    app.style.maxWidth = Math.min(760, vw / k) + "px";
-    const contentH = app.offsetHeight + 24;         // 24 = body 上下 padding
-    k = homeVisible ? 1 : Math.min(1, vw / Math.max(contentH, 1));
-  }
+  body.style.height = vw + "px";
+  /* 统一缩放策略：把电脑端 760px 宽的设计原封不动等比缩放到手机屏宽，
+     保证手机端和电脑端外观一模一样（只是整体变小）。
+     k 受两个条件约束：
+     1. vw/760        —— 760px 设计宽缩放后正好占满屏宽
+     2. vw/内容真实高度 —— 抽奖页内容太高时再进一步缩小（首页列表内部滚动，一般不受此限） */
+  const contentH = $("app").offsetHeight + 24;      // 24 = body 上下 padding
+  const k = Math.min(1, vw / 760, vw / Math.max(contentH, 1));
   body.style.width = (vh / k) + "px";
   body.style.height = (vw / k) + "px";
   // 平移 + 旋转 + 缩放：让画面刚好铺满整个竖屏（transform-origin 在左上角）
