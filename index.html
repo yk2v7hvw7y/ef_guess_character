@@ -2,19 +2,29 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- 首屏关键资源优先级预加载：浏览器比 JS 更早开始下载 -->
+<link rel="preload" as="image" href="assets/title.png">
+<link rel="preload" as="image" href="assets/push_button_start.png">
+<link rel="preload" as="image" href="assets/push_button_answer.png">
+<link rel="preload" as="image" href="assets/push_button_back.png">
+<link rel="preload" as="image" href="assets/efback.jpg">
 <title>翼遥动漫社-角色猜猜乐</title>
 <style>
   /* ============================================================
      第一部分：全局样式
      ============================================================ */
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { overflow-x: hidden; }                       /* 防止扩大的 fixed 层在某些内核撑出横向滚动条 */
   html, body {
     background: #181a30;                              /* 没配背景图时的深蓝紫底色 */
     color: #f0f2ff;
     font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
     min-height: 100%;
+    -webkit-tap-highlight-color: transparent;       /* 手机点击按钮时不闪灰色块 */
+    -webkit-text-size-adjust: 100%;                 /* 禁止 iOS/安卓横屏时自动放大字号 */
   }
+  html { touch-action: manipulation; }              /* 全局：消除点击 300ms 延迟，QQ 浏览器尤其需要 */
   body {
     padding: 12px;
   }
@@ -24,13 +34,20 @@
     inset: 0;
     z-index: 0;
     background-color: #181a30;
-    background-size: cover;                           /* 等比铺满整个屏幕，多余裁掉 */
+    background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
   }
-  /* 背景图上的压暗遮罩：保证不管图多亮，上面的文字都看得清。
-     不透明度用变量 --bg-dim 控制：首页 0.30（看清图），抽奖页 0.74（看清字），
-     数值在 0~1 之间，越小越透明、背景越亮 */
+  /* 强制横屏时 body 有 transform，fixed 元素的 containing block 变成了 body
+     （而 body 又被旋转+缩放了），这时 bgLayer 只靠 inset:0 会比物理屏幕小一圈，
+     所以要向四周扩出 200vw/200vh 才能盖住整个屏幕。
+     电脑端不走 force-landscape，保持上面的 inset:0 原样，避免 background-size:cover
+     把图放大过多 */
+  body.force-landscape #bgLayer {
+    inset: auto; left: -200vw; top: -200vh;
+    width: calc(100% + 400vw); height: calc(100% + 400vh);
+  }
+  /* 背景图上的压暗遮罩：跟着 bgLayer 一起铺满 */
   #bgLayer::after {
     content: "";
     position: absolute;
@@ -98,6 +115,7 @@
     font-weight: bold;
     cursor: pointer;
     touch-action: manipulation;                        /* 触摸立即响应 */
+    -webkit-tap-highlight-color: transparent;
   }
   .range-card:active { background: #31365c; }
   .range-card .count {
@@ -247,6 +265,7 @@
      ============================================================ */
   #overlay {
     position: fixed;
+    /* 电脑端正常铺满即可，强制横屏时再扩圈（见 body.force-landscape #overlay） */
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
     display: none;
@@ -256,6 +275,10 @@
     cursor: pointer;
     touch-action: manipulation;
     overscroll-behavior: contain;
+  }
+  body.force-landscape #overlay {
+    inset: auto; left: -200vw; top: -200vh;
+    width: calc(100% + 400vw); height: calc(100% + 400vh);
   }
   #overlay.show { display: flex; }
   /* 谜底弹窗：恢复居中面板样式后，宽度再次扩大到 1140px（旧版 380px 的 3 倍） */
@@ -305,6 +328,10 @@
     justify-content: center;
     align-items: center;
     z-index: 20;
+  }
+  body.force-landscape #devOverlay {
+    inset: auto; left: -200vw; top: -200vh;
+    width: calc(100% + 400vw); height: calc(100% + 400vh);
   }
   #devOverlay.show { display: flex; }
   #devPanel {
@@ -443,35 +470,15 @@
   </div>
 </div>
 
-<div id="ver">v17</div>
+<div id="ver">v20</div>
 
 <script>
 "use strict";
 
 /* ================================================================
-   一、数据配置区
-   ----------------------------------------------------------------
-   ★ 想新增一个 IP：照着 RANGES 里的对象再加一个 { }。
-   ★ 想新增一个角色：往对应 IP 的 characters 里加一个 { }。
-   ★ 三个滚轮里滚什么词：默认自动从所有角色的 attrs 收集去重，
-     attrs 的第 1/2/3 个词分别属于第 1/2/3 个滚轮。
-   ★ tip：该 IP 抽奖界面最底部那句话，每个 IP 写得不一样。
-   ★ 背景图怎么加（重点看这里！）：
-     1) 在 index.html 旁边新建一个文件夹（比如叫 assets）；
-     2) 把图片丢进去，比如 assets/bg-anime.jpg；
-     3) 在该 IP 的配置里写：background: "assets/bg-anime.jpg",
-        不填或填 null 就是默认深蓝紫色背景。
-     建议：图片用 jpg、竖屏比例（如 1080×1920），手机上铺满不变形。
+   一、数据配置区（RANGES 数组）
    ================================================================ */
-/* ★ 首页（选择IP页面）背景图：
-     1) 把图片放进 assets 文件夹，比如 assets/bg-home.jpg；
-     2) 把下面的 null 改成图片路径（注意保留引号）：
-        const HOME_BACKGROUND = "assets/bg-home.jpg";
-     填 null 就是默认深蓝紫纯色背景。
-     建议：jpg 格式，横屏比例（如 1920×1080），单张 1MB 以内。 */
 const HOME_BACKGROUND = "assets/efback.jpg";
-/* 首页背景图上的压暗遮罩浓度：0 = 完全透明（图最亮），1 = 全黑（看不见图）。
-   觉得背景灰就调小（如 0.15），觉得标题刺眼看不清就调大（如 0.45）。 */
 const HOME_DIM = 0;
 const RANGES = [
   {
@@ -901,7 +908,7 @@ const STOP_TIMES = [
 const SPIN_TURNS = [6, 8, 10];        // 三个滚轮滚动的“整圈数”，越靠后转得越多
 
 /* ================================================================
-   三、音效
+   三、音效：滴答（tick）/停稳（stop）/开始解锁（unlock）
    ================================================================ */
 let audioCtx = null;
 function ensureAudio() {
@@ -985,7 +992,25 @@ function playFish() {
   if (p && p.catch) p.catch(() => {});
 }
 /* ================================================================
-   四、全局状态变量
+   四、预加载（加快弹窗图片显示速度的核心）
+   ----------------------------------------------------------------
+   浏览器有内存缓存：同 URL 的图只要加载过一次，再用 new Image() 或
+   <img src> 引用时直接命中缓存，瞬间显示。所以策略是：
+   - 页面启动时：预加载首页背景图（已由 <link preload> 高优先级）
+   - enterRange 时：预加载当前 IP 所有角色图（并发，每个 IP 就 10-15 张）
+   点谜底时 img.src = xxx 直接命中缓存，不再等下载。
+   ================================================================ */
+const _preloaded = new Set();   // 记录已预加载的 URL，避免重复请求
+function preloadImages(urls) {
+  urls.forEach(u => {
+    if (!u || _preloaded.has(u)) return;
+    _preloaded.add(u);
+    const img = new Image();
+    img.src = u;                 // 触发下载，浏览器自动存进内存缓存
+  });
+}
+/* ================================================================
+   五、全局状态变量
    ================================================================ */
 let currentRange = null;             // 当前选择的范围对象
 let reelItems = [[], [], []];        // 三个滚轮各自的词库
@@ -1082,6 +1107,8 @@ function enterRange(idx) {
     win.appendChild(ph);
   }
   fitLandscape();                    // 页面高度变了，重新计算横屏缩放
+  // 预加载当前 IP 所有角色图：浏览器并发下载，点谜底时直接命中缓存
+  preloadImages(currentRange.characters.map(c => c.image).filter(Boolean));
 }
 function goHome() {
   // 返回首页：若正在抽奖，先停掉动画
@@ -1330,8 +1357,11 @@ $("devOverlay").addEventListener("click", e => {
 function fitLandscape() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  // 只在“触摸屏设备 + 竖屏”时启用；电脑或手机横屏时不做任何处理
-  const needRotate = window.matchMedia("(pointer: coarse)").matches && vh > vw;
+  // 检测触摸设备：QQ/微信等安卓定制内核经常不支持 pointer: coarse，
+  // 用 navigator.maxTouchPoints + ontouchstart 双重兜底更靠谱
+  const isTouch = (navigator.maxTouchPoints > 0) || ("ontouchstart" in window);
+  // 小屏触摸设备竖屏时强制横屏；桌面或手机已横过来则不处理
+  const needRotate = isTouch && vh > vw && Math.max(vw, vh) < 1024;
   const body = document.body;
   if (!needRotate) {
     body.classList.remove("force-landscape");
@@ -1366,6 +1396,9 @@ window.addEventListener("orientationchange", () => {
 /* ================================================================
    十三、启动：渲染首页
    ================================================================ */
+// 页面一打开就预加载首页背景和所有 IP 背景（数量少，瞬间完成）
+const allBg = [HOME_BACKGROUND, ...RANGES.map(r => r.background)].filter(Boolean);
+preloadImages(allBg);
 renderHome();
 // 页面一打开就应用首页背景图（没配则保持默认底色）和首页遮罩浓度
 $("bgLayer").style.backgroundImage =
