@@ -4,11 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <!-- 首屏关键资源优先级预加载：浏览器比 JS 更早开始下载 -->
-<link rel="preload" as="image" href="assets/title.png">
-<link rel="preload" as="image" href="assets/push_button_start.png">
-<link rel="preload" as="image" href="assets/push_button_answer.png">
-<link rel="preload" as="image" href="assets/push_button_back.png">
-<link rel="preload" as="image" href="assets/efback.jpg">
+<link rel="preload" as="image" href="assets/A_setting/image/push_button_start.png">
+<link rel="preload" as="image" href="assets/A_setting/image/push_button_answer.png">
+<link rel="preload" as="image" href="assets/A_setting/image/push_button_back.png">
+<link rel="preload" as="image" href="assets/A_setting/image/efback.jpg">
 <title>翼遥动漫社-角色猜猜乐</title>
 <style>
   /* ============================================================
@@ -35,7 +34,7 @@
     z-index: 0;
     background-color: #fdf3dd;
     background-size: cover;
-    background-position: center center;
+    background-position: center top;   /* 从顶部对齐：竖屏手机 cover 裁切时保住背景图顶部的标题区 */
     background-repeat: no-repeat;
   }
   /* 强制横屏时 body 被 JS 精确设为旋转后的屏幕大小，且 body 有 transform，
@@ -67,46 +66,62 @@
   /* 首页整屏高度 + 纵向 flex 布局：标题和副标题固定在上方不动，
      只有下面的 IP 列表（#rangeList）内部滚动 */
   #homeScreen {
-    padding-top: 30px;
+    padding-top: 12px;
     text-align: center;
     height: calc(100vh - 24px);                     /* 24 = body 上下 padding */
     height: calc(100dvh - 24px);                    /* 手机浏览器用动态视口高，更准；不支持的浏览器会自动用上一行 */
     display: flex;
     flex-direction: column;
   }
-  /* 首页标题图片：原图 606×162，宽度不超过原图，避免放大模糊。
-     注意：图里的「角色猜猜乐」并不在图的正中央——实测其中心在 x=348，
-     比图中心 303 偏右 45px（45/606 ≈ 7.43%）。所以先用 margin:auto 把
-     图片整体居中，再向左平移这 7.43%，文字中心才和下方「请选择IP」对齐。
-     用百分比而不是 45px：图片宽度随屏幕变化，百分比才能等比补偿。
-     （这里不能用 align-items:center，否则 IP 列表会跟着缩窄） */
-  #titleImg {
-    display: block;
-    width: 90%;
-    max-width: 606px;
-    height: auto;
-    margin: 0 auto 8px;
-    transform: translateX(-7.43%);
-    filter: drop-shadow(0 5px 10px rgba(196, 138, 40, 0.35));  /* 标题图加暖色投影，浮出背景 */
-  }
+  /* 「请选择IP」：与抽奖页标题同款对话气泡，固定在左上角像素吊饰右侧。
+     fixed 定位 = 背景图坐标系，缩放窗口/强制横屏都跟着背景走 */
   #homeScreen .sub {
-    display: inline-block;                            /* 做成胶囊徽章，而不是一行裸文字 */
-    padding: 4px 26px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.65);
-    border: 1px solid rgba(242, 169, 59, 0.55);
-    box-shadow: 0 2px 6px rgba(196, 138, 40, 0.2);
-    color: #a97b2f;
-    font-size: clamp(15px, 3vw, 18px);
-    margin-bottom: 26px;
-    letter-spacing: 4px;
+    position: fixed;
+    z-index: 5;
+    left: calc(var(--bgw, 100vw) * 0.105);
+    top: calc(var(--bgw, 100vw) * 0.16 - 20px);       /* 与吊饰人物头部居中 */
+    padding: 8px 26px 8px 30px;
+    border-radius: 999px;                             /* 椭圆气泡 */
+    background: linear-gradient(180deg, #fffdf7, #ffeecd);
+    border: 2px solid #f2a93b;
+    outline: 1.5px dashed rgba(242, 169, 59, 0.55);   /* 内圈虚线，与弹窗票框同款 */
+    outline-offset: -6px;
+    box-shadow:
+      0 4px 10px rgba(150, 95, 20, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    color: #5a431f;
+    font-size: clamp(14px, 2.2vw, 18px);
+    letter-spacing: 3px;
   }
-  /* IP 列表：占满标题以下的剩余空间，卡片多了就在这个区域内部滚动 */
+  /* 气泡尾巴：指向左侧吊饰 */
+  #homeScreen .sub::before {
+    content: "";
+    position: absolute;
+    left: -9px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    background: #ffefd0;
+    border-left: 2px solid #f2a93b;
+    border-bottom: 2px solid #f2a93b;
+    transform: translateY(-50%) rotate(45deg);
+  }
+  /* IP 列表：气泡固定后不再占文档流，列表自己退到背景标题区的下方 */
   #rangeList {
     flex: 1;
     min-height: 0;                                  /* flex 子元素想内部滚动，必须加这一行 */
     overflow-y: auto;
+    margin-top: calc(var(--bgw, 100vw) * 0.135);
   }
+  /* IP 列表滚动条：细橙金样式，与主题同调 */
+  #rangeList::-webkit-scrollbar { width: 8px; }
+  #rangeList::-webkit-scrollbar-track { background: transparent; }
+  #rangeList::-webkit-scrollbar-thumb {
+    background: rgba(242, 169, 59, 0.45);
+    border-radius: 4px;
+  }
+  #rangeList::-webkit-scrollbar-thumb:hover { background: rgba(242, 169, 59, 0.7); }
+
   /* 范围卡片：奶白半透明卡片 + 橙金描边，与波点背景同调。
      外观轮廓：左侧竖色条做视觉锚点，右侧“›”箭头提示可点，
      悬停时上浮+箭头右移。 */
@@ -168,8 +183,12 @@
     box-shadow: 0 2px 6px rgba(196, 138, 40, 0.3);
   }
   .range-card .count {
-    display: block;
-    margin-top: 4px;
+    display: inline-block;
+    margin-top: 6px;
+    padding: 1px 12px;
+    border-radius: 999px;
+    background: rgba(242, 169, 59, 0.16);
+    border: 1px solid rgba(242, 169, 59, 0.35);
     font-size: 13px;
     font-weight: normal;
     color: #b08d55;
@@ -178,37 +197,90 @@
   /* ============================================================
      第三部分：游戏页（标题 + 三个竖向滚轮 + 三个按钮）
      ============================================================ */
+  /* 抽奖页锁一屏 + 相对定位（标题气泡以它为锚点），禁止滚动 */
+  #gameScreen {
+    position: relative;
+    height: calc(100vh - 24px);                     /* 24 = body 上下 padding */
+    height: calc(100dvh - 24px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;                               /* 关键：内容再高也不给页面滚动条 */
+  }
+  /* IP 标题：对话框气泡，固定定位在整个视口（= 背景图坐标系）左上角，
+     紧贴像素吊饰右侧。不能用 absolute——#gameScreen 是居中的 760px
+     窄列，相对它定位会偏到背景图中央去 */
   #gameTitle {
-    text-align: center;
-    color: #4a3a1e;                                   /* 暖棕标题，压在奶油背景上 */
-    font-size: clamp(22px, 5vw, 32px);
-    margin: 14px 0 22px;
-    letter-spacing: 2px;
-    /* 浅色背景改用柔和的白色高光+暖色投影，保证立体感又不糊 */
-    text-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.9),
-      0 2px 6px rgba(196, 138, 40, 0.35);
+    position: fixed;
+    z-index: 5;                                       /* 盖在滚轮区之上，防止被滚轮行遮挡 */
+    left: calc(var(--bgw, 100vw) * 0.105 / var(--gz, 1));
+    top: calc(var(--bgw, 100vw) * 0.16 / var(--gz, 1) - 20px);  /* 与吊饰人物头部居中 */
+    padding: 8px 26px 8px 30px;
+    border-radius: 999px;                             /* 椭圆气泡 */
+    background: linear-gradient(180deg, #fffdf7, #ffeecd);
+    border: 2px solid #f2a93b;
+    outline: 1.5px dashed rgba(242, 169, 59, 0.55);   /* 内圈虚线，与弹窗票框同款 */
+    outline-offset: -6px;
+    box-shadow:
+      0 4px 10px rgba(150, 95, 20, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);        /* 顶部高光 */
+    color: #5a431f;
+    font-size: clamp(14px, 2.2vw, 18px);
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  /* 气泡尾巴：指向左侧吊饰的小尖角 */
+  #gameTitle::before {
+    content: "";
+    position: absolute;
+    left: -9px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    background: #ffefd0;
+    border-left: 2px solid #f2a93b;
+    border-bottom: 2px solid #f2a93b;
+    transform: translateY(-50%) rotate(45deg);
   }
   .reel-row {
     display: flex;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 7px;
   }
+  /* 标题改气泡后不再占据文档流，滚轮区需要自己退到背景图标题区的下方 */
+  #reelRows {
+    margin-top: calc(var(--bgw, 100vw) * 0.108 / var(--gz, 1));
+  }
+  /* 标签牌左缘加一个圆头小橙条，与首页卡片的书签条呼应 */
   .reel-label {
+    position: relative;
     flex: 0 0 4.2em;                                   /* 固定宽度，三行标签对齐 */
     text-align: center;
-    font-size: clamp(16px, 3.6vw, 21px);
+    font-size: clamp(15px, 3.2vw, 19px);
     font-weight: bold;
-    color: #d97b00;
+    color: #b35f00;
     margin-right: 10px;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+    padding: 4px 2px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(255, 252, 243, 0.9), rgba(255, 236, 200, 0.85));
+    border: 1px solid rgba(242, 169, 59, 0.5);
+    box-shadow: 0 2px 5px rgba(196, 138, 40, 0.2);
+    text-shadow: none;
   }
-  /* 竖向滚动窗口：高 2 格（CELL_H 60px × 2 = 120px）。
-     中间一格完整显示抽中的词，上下相邻的词只各露半格 */
+  .reel-label::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 2px;
+    background: #f2a93b;
+  }
+  /* 竖向滚动窗口：高 2 格。中间一格完整显示抽中的词，上下相邻的词只各露半格 */
   .reel-window {
     position: relative;
     flex: 1;
-    height: 120px;
+    height: calc(var(--cell-h, 60px) * 2);             /* 两格高，格子高由 JS 按屏幕算好写入 --cell-h */
     background: rgba(255, 250, 236, 0.85);            /* 奶白半透明，与背景融为一体 */
     border: 2px solid rgba(242, 169, 59, 0.6);
     border-radius: 14px;
@@ -216,18 +288,20 @@
     overflow: hidden;                                  /* 关键：裁掉窗外的文字 */
   }
   /* 老虎机滚筒质感：上下两条暖色渐变，模拟滚筒曲面明暗，
-     中间亮、上下暗，让窗口看起来像个“鼓” */
+     左右两条轨道竖条，中间亮、上下暗，让窗口看起来像个“鼓” */
   .reel-window::after {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: 12px;
     pointer-events: none;
-    background: linear-gradient(180deg,
-      rgba(196, 138, 40, 0.28),
-      rgba(255, 255, 255, 0) 32%,
-      rgba(255, 255, 255, 0) 68%,
-      rgba(196, 138, 40, 0.28));
+    background:
+      linear-gradient(90deg, rgba(242, 169, 59, 0.22), rgba(255, 255, 255, 0) 12px, rgba(255, 255, 255, 0) calc(100% - 12px), rgba(242, 169, 59, 0.22)),
+      linear-gradient(180deg,
+        rgba(196, 138, 40, 0.28),
+        rgba(255, 255, 255, 0) 32%,
+        rgba(255, 255, 255, 0) 68%,
+        rgba(196, 138, 40, 0.28));
   }
   /* 正中央的金色选中框（一条与窗口同宽的横向高亮带） */
   .reel-center {
@@ -235,11 +309,31 @@
     left: 4px;
     right: 4px;
     top: 50%;
-    height: 60px;                                     
+    height: var(--cell-h, 60px);
     transform: translateY(-50%);
     border: 3px solid #f59e0b;
     border-radius: 8px;
     pointer-events: none;                              /* 不挡触摸 */
+  }
+  /* 选中框左右两个橙色小箭头，像老虎机的指针一样指向中奖格 */
+  .reel-center::before,
+  .reel-center::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+  }
+  .reel-center::before {
+    left: -3px;
+    border-right: 10px solid #f59e0b;
+  }
+  .reel-center::after {
+    right: -3px;
+    border-left: 10px solid #f59e0b;
   }
   /* 该滚轮停稳后，选中框发光提示 */
   .reel-row.done .reel-center {
@@ -251,7 +345,7 @@
     position: absolute;
     left: 0;
     width: 100%;
-    height: 60px;
+    height: var(--cell-h, 60px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -277,7 +371,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 40px;
+    font-size: calc(var(--cell-h, 60px) * 0.62);       /* 随格子高度缩放，小格子时不会撑爆 */
     font-weight: bold;
     color: #d9c49a;
     pointer-events: none;                              /* 不挡点击 */
@@ -286,13 +380,13 @@
   .btn-bar {
     display: flex;
     justify-content: space-around;
-    margin-top: 26px;
+    margin-top: 12px;                                 /* 页面走紧凑路线：固定小间距，不再沉底 */
   }
   /* 底部三个图片按钮：三张专属图（图上已自带“开始/谜底/返回”文字），
      按钮本身不再显示文字，只负责把图片铺满 */
   .oval-btn {
-    width: 28%;
-    max-width: 200px;
+    width: 24%;
+    max-width: 158px;
     aspect-ratio: 1292 / 727;                        /* 与底图同比例，不变形 */
     padding: 0;
     border: none;
@@ -303,15 +397,20 @@
     background-repeat: no-repeat;
     cursor: pointer;
     touch-action: manipulation;
+    filter: drop-shadow(0 5px 9px rgba(150, 95, 20, 0.35));  /* 像素按钮浮起投影 */
     transition: transform 0.08s ease, filter 0.1s ease;
   }
   /* 三个按钮各自的图片 */
-  #btnStart { background-image: url("assets/push_button_start.png"); }
-  #btnAnswer { background-image: url("assets/push_button_answer.png"); }
-  #btnBack { background-image: url("assets/push_button_back.png"); }
+  #btnStart { background-image: url("assets/A_setting/image/push_button_start.png"); }
+  #btnAnswer { background-image: url("assets/A_setting/image/push_button_answer.png"); }
+  #btnBack { background-image: url("assets/A_setting/image/push_button_back.png"); }
   .oval-btn:active {
     transform: scale(0.93);                           /* 按下去缩一下，像真按钮 */
     filter: brightness(0.92);
+  }
+  .oval-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    filter: drop-shadow(0 9px 14px rgba(150, 95, 20, 0.4)) brightness(1.04);
   }
   /* 谜底按钮：没抽完之前图片变灰不可点 */
   .oval-btn:disabled {
@@ -320,9 +419,9 @@
   }
   /* 每个 IP 抽奖界面底部的专属提示语：做成小胶囊贴条，不再是裸文字 */
   #gameTip {
-    margin: 30px auto 0;
+    margin: 8px auto 0;
     max-width: 520px;
-    padding: 6px 18px;
+    padding: 4px 18px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.55);
     border: 1px dashed rgba(217, 123, 0, 0.5);
@@ -339,6 +438,7 @@
     /* 电脑端正常铺满即可，强制横屏时再扩圈（见 body.force-landscape #overlay） */
     inset: 0;
     background: rgba(96, 60, 10, 0.4);
+    backdrop-filter: blur(2px);                       /* 弹窗背后轻微磨砂，层次更柔 */
     display: none;
     justify-content: center;
     align-items: center;
@@ -352,14 +452,17 @@
   }
   #overlay.show { display: flex; }
   /* 谜底弹窗：恢复居中面板样式后，宽度再次扩大到 1140px（旧版 380px 的 3 倍） */
+  /* 谜底弹窗：双层边框——外圈实线橙金 + 内圈虚线细框，像奖券一样 */
   #panel {
     width: 1140px;
     max-width: 90%;
     max-height: 90vh;
     overflow-y: auto;                                 /* 内容太长时面板内部滚动 */
-    background: #fffaf0;
-    border: 2px solid #f2a93b;
+    background: linear-gradient(180deg, #fffdf7, #fff1d6);   /* 奶油渐变底 */
+    border: 3px solid #f2a93b;
     border-radius: 16px;
+    outline: 2px dashed rgba(242, 169, 59, 0.5);      /* 内层虚线装饰框 */
+    outline-offset: -10px;
     box-shadow: 0 10px 40px rgba(120, 75, 15, 0.35);
     padding: 16px;
     text-align: center;
@@ -413,9 +516,11 @@
   #devPanel {
     width: 300px;
     max-width: 86%;
-    background: #fffaf0;
-    border: 2px solid #f2a93b;
+    background: linear-gradient(180deg, #fffdf7, #fff1d6);
+    border: 3px solid #f2a93b;
     border-radius: 14px;
+    outline: 2px dashed rgba(242, 169, 59, 0.5);      /* 与谜底弹窗同款双层边框 */
+    outline-offset: -8px;
     box-shadow: 0 8px 30px rgba(120, 75, 15, 0.35);
     padding: 18px 16px;
     text-align: center;
@@ -496,6 +601,9 @@
      让首页“标题固定 + 列表滚动”在旋转模式下同样生效 */
   body.force-landscape #app { height: 100%; }
   body.force-landscape #homeScreen { height: 100%; }
+  /* 旋转模式下抽奖页高度必须回退为 auto：内容自然高度参与 body 的 scale(k) 计算，
+     若锁 100% 会造成循环依赖（k 恒为 1），内容超出屏幕被裁掉、按钮看不见 */
+  body.force-landscape #gameScreen { height: auto; overflow: visible; }
   /* 强制横屏时标题图随 body 一起旋转 90°，与页面其他内容方向保持一致，
      用户把手机横过来后整页文字方向统一。不做反向旋转，
      否则标题横躺而其它内容竖排，画面看起来错乱 */
@@ -507,7 +615,7 @@
 <div id="app">
   <!-- ============ 第一个界面：选择IP ============ -->
   <section id="homeScreen">
-    <img id="titleImg" src="assets/title.png" alt="翼遥动漫社-角色猜猜乐">
+    <!-- 标题已直接绘制在背景图 efback.jpg 顶部，不再用单独的标题图 -->
     <p class="sub">请选择IP</p>
     <div id="rangeList"></div>
   </section>
@@ -558,16 +666,16 @@
 /* ================================================================
    一、数据配置区（RANGES 数组）
    ================================================================ */
-const HOME_BACKGROUND = "assets/efback.jpg";
+const HOME_BACKGROUND = "assets/A_setting/image/efback.jpg";
 const HOME_DIM = 0;
 const RANGES = [
   {
     // name：首页卡片上显示的名字
     name: "鸣潮",
     // title：进入后页面顶部的标题
-    title: "鸣潮·角色猜猜乐",
+    title: "鸣潮",
     // background：这个 IP 抽奖界面的背景图路径（没有就填 null）
-    background: "assets/efback.jpg",                              // 例如 "assets/bg-anime.jpg"
+    background: "assets/A_setting/image/efback.jpg",                              // 例如 "assets/bg-anime.jpg"
     // labels：三行滚轮左边的标签
     labels: ["地区", "外观", "性格"],
     // tip：这个 IP 抽奖界面最底部的专属提示语
@@ -576,396 +684,398 @@ const RANGES = [
     characters: [
       {
         name: "爱弥斯",
-        image: "assets/Aemeath.jpg",
+        image: "assets/Wuwa/Aemeath.jpg",
         attrs: ["拉海洛", "粉毛+驾驶服+星星眼", "救世主+爱"]
       },
       {
         name: "守岸人",
-        image: "assets/Shorekeeper.jpg",
+        image: "assets/Wuwa/Shorekeeper.jpg",
         attrs: ["黑海岸", "蓝毛+头纱+蝴蝶", "守候+三无"]
       },
       {
         name: "卡提希娅",
-        image: "assets/Cartethyia.jpg",
+        image: "assets/Wuwa/Cartethyia.jpg",
         attrs: ["黎那汐塔", "黄毛+荆棘冠+可大可小", "活跃+坚强"]
       },
       {
         name: "心月狐",
-        image: "assets/Xiyuehu.jpg",
+        image: "assets/Wuwa/Xiyuehu.jpg",
         attrs: ["梦州", "白/黑/黄/蓝毛+大尾巴+狐耳", "一心为民+贪玩"]
       },
       {
         name: "今汐",
-        image: "assets/Jinhsi.jpg",
+        image: "assets/Wuwa/Jinhsi.jpg",
         attrs: ["今州", "白毛+龙角龙鳞", "坚强+腼腆"]
       },
       {
         name: "莫宁",
-        image: "assets/Mornye.jpg",
+        image: "assets/Wuwa/Mornye.jpg",
         attrs: ["拉海洛", "白毛+红瞳+义肢", "腼腆+向往理想"]
       },
       {
         name: "千咲",
-        image: "assets/Chisa.jpg",
+        image: "assets/Wuwa/Chisa.jpg",
         attrs: ["拉海洛+苇原", "黑长直+红瞳+JK", "腼腆"]
       },
       {
         name: "琳奈",
-        image: "assets/Lynae.jpg",
+        image: "assets/Wuwa/Lynae.jpg",
         attrs: ["拉海洛-新联邦", "黑/黄毛+轮滑鞋+辣妹", "啥子+忍辱负重"]
       },
       {
         name: "秧秧",
-        image: "assets/Yangyang.jpg",
+        image: "assets/Wuwa/Yangyang.jpg",
         attrs: ["今州", "黑/白/蓝毛+羽化发型", "神秘写信女+坚强"]
       },
       {
         name: "清宵",
-        image: "assets/Qingxiao.jpg",
+        image: "assets/Wuwa/Qingxiao.jpg",
         attrs: ["梦州", "蓝毛+白丝", "清冷+压抑"]
       },
       {
         name: "达妮娅",
-        image: "assets/Denia.jpg",
+        image: "assets/Wuwa/Denia.jpg",
         attrs: ["拉海洛-残星会", "粉毛+水蜜桃", "双重人格+一颗属于人的心"]
       }
     ]
   },
   {
     name: "月亮计划",
-    title: "月亮计划·角色猜猜乐",
-    background: "assets/efback.jpg",                              // 例如 "assets/bg-history.jpg"
+    title: "月亮计划",
+    background: "assets/A_setting/image/efback.jpg",                              // 例如 "assets/bg-history.jpg"
     labels: ["主要出现作品", "所属", "相关言行"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "艾因",
-        image: "assets/Ayin.jpg",
+        image: "assets/Limbus/Ayin.jpg",
         attrs: ["脑叶公司", "L公司+光之种", "建立L公司+完成光之种计划"]
       },
       {
         name: "卡门",
-        image: "assets/Carmen.jpg",
+        image: "assets/Limbus/Carmen.jpg",
         attrs: ["脑叶公司+废墟图书馆+边狱巴士", "光之种", "异想体之母+引导人们直面自我"]
       },
       {
         name: "安吉拉",
-        image: "assets/Angela.jpg",
+        image: "assets/Limbus/Angela.jpg",
         attrs: ["脑叶公司+废墟图书馆", "L公司", "背叛光之种计划+建立图书馆+试图成为人类"]
       },
       {
         name: "罗兰",
-        image: "assets/Roland.jpg",
+        image: "assets/Limbus/Roland.jpg",
         attrs: ["废墟图书馆", "图书馆", "一码归一码"]
       },
       {
         name: "红姐",
-        image: "assets/Redmist.jpg",
+        image: "assets/Limbus/Redmist.jpg",
         attrs: ["脑叶公司+废墟图书馆", "L公司", "血雾弥漫，尸横遍野"]
       },
       {
         name: "孔丘",
-        image: "assets/Jiaqiu.jpg",
+        image: "assets/Limbus/Jiaqiu.jpg",
         attrs: ["边狱巴士", "小指", "一人守住铁槛寺+一棍五望击杀雷横"]
       },
       {
         name: "里恩",
-        image: "assets/Rien.jpg",
+        image: "assets/Limbus/Rien.jpg",
         attrs: ["边狱巴士", "食指+蜘蛛巢", "模仿漆黑噤默"]
       },
       {
         name: "马蒂亚斯",
-        image: "assets/Matthias.jpg",
+        image: "assets/Limbus/Matthias.jpg",
         attrs: ["边狱巴士", "中指+蜘蛛巢", "牺牲家人"]
       },
       {
         name: "卡利斯托",
-        image: "assets/Callisto.jpg",
+        image: "assets/Limbus/Callisto.jpg",
         attrs: ["边狱巴士", "环指+蜘蛛巢", "落魄的大师+优质画廊"]
       },
       {
         name: "阿赖耶",
-        image: "assets/Alaya.jpg",
+        image: "assets/Limbus/Alaya.jpg",
         attrs: ["边狱巴士", "良秀+蜘蛛巢", "我想要成为妈妈的妈妈"]
       },
       {
         name: "瓦伦希娜",
-        image: "assets/Valencina.jpg",
+        image: "assets/Limbus/Valencina.jpg",
         attrs: ["边狱巴士", "拇指+蜘蛛巢", "怎么，打不中吗？+心脏！给我瞄准心脏啊！"]
       }
     ]
   },
   {
     name: "原神",
-    title: "原神·角色猜猜乐",
-    background: "assets/efback.jpg",                              // 例如 "assets/bg-history.jpg"
+    title: "原神",
+    background: "assets/A_setting/image/efback.jpg",                              // 例如 "assets/bg-history.jpg"
     labels: ["称号", "别号", "提示"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "荧",
-        image: "assets/Lumine.jpg",
+        image: "assets/Genshin/Lumine.jpg",
         attrs: ["旅行者", "哑巴+小黄毛", "人品高到令人发指的程度"]
       },
       {
         name: "菲林斯",
-        image: "assets/Flins.jpg",
+        image: "assets/Genshin/Flins.jpg",
         attrs: ["诡灯陌影", "雷系神人", "超级礼貌超级典雅的老家伙"]
       },
       {
         name: "桑多涅",
-        image: "assets/Sandrone.jpg",
+        image: "assets/Genshin/Sandrone.jpg",
         attrs: ["镜水析谬", "析构万理的发条公主", "傲娇小猫"]
       },
       {
         name: "芙宁娜",
-        image: "assets/Furina.jpg",
+        image: "assets/Genshin/Furina.jpg",
         attrs: ["不休独舞", "水系小蛋糕", "超级害怕某恐怖香菇眼"]
       },
       {
         name: "爱可菲",
-        image: "assets/Escoffier.jpg",
+        image: "assets/Genshin/Escoffier.jpg",
         attrs: ["明绚干韵", "甜点大校", "超级超级敬仰某水系小蛋糕"]
       },
       {
         name: "胡桃",
-        image: "assets/Hu_Tao.jpg",
+        image: "assets/Genshin/Hu_Tao.jpg",
         attrs: ["雪霁梅香", "第七七代堂主", "璃月打油诗第一人"]
       },
       {
         name: "雷电将军",
-        image: "assets/Ei.jpg",
+        image: "assets/Genshin/Ei.jpg",
         attrs: ["一心净土", "御建鸣神主尊大御所大人", "三彩团子爱好者"]
       },
       {
         name: "洛恩",
-        image: "assets/Lonen.jpg",
+        image: "assets/Genshin/Lonen.jpg",
         attrs: ["恣锐锋镞", "骑士团第五小队队长", "仁蔼骑士"]
       },
       {
         name: "雅珂达",
-        image: "assets/Arlecchino.jpg",
+        image: "assets/Genshin/Arlecchino.jpg",
         attrs: ["系风攘影", "秘闻馆二把手", "喜欢某机器人的拥抱"]
       },
       {
         name: "戴因斯雷布",
-        image: "assets/Dainsleif.jpg",
+        image: "assets/Genshin/Dainsleif.jpg",
         attrs: ["未来与过去的节点", "疑似第六大罪人", "最爱坎瑞亚之人"]
       }
     ]
   },
   {
     name: "咒术回战",
-    title: "咒术回战·角色猜猜乐",
-    background: "assets/efback.jpg",                              
+    title: "咒术回战",
+    background: "assets/A_setting/image/efback.jpg",                              
     labels: ["种族", "战绩", "性格"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "五条悟",
-        image: "assets/Satoru_Gojo.jpg",
+        image: "assets/fight/Satoru_Gojo.jpg",
         attrs: ["人类", "击杀甚尔+重创宿傩", "伟大+理性+智慧"]
       },
       {
         name: "夏油杰",
-        image: "assets/Suguru_Geto.jpg",
+        image: "assets/fight/Suguru_Geto.jpg",
         attrs: ["人类", "发动百鬼夜行", "认真+傲慢+黑暗"]
       },
       {
         name: "虎杖悠仁",
-        image: "assets/Yuji_Itadori.jpg",
+        image: "assets/fight/Yuji_Itadori.jpg",
         attrs: ["人类", "八连黑闪+击败宿傩", "激情+仁爱"]
       },
       {
         name: "秤金次",
-        image: "assets/Kinji_Hakari.jpg",
+        image: "assets/fight/Kinji_Hakari.jpg",
         attrs: ["人类", "击败鹿紫云一", "赌徒+疯狂"]
       },
       {
         name: "东堂葵",
-        image: "assets/Aoi_Todo.jpg",
+        image: "assets/fight/Aoi_Todo.jpg",
         attrs: ["人类", "辅助击败真人+辅助击败宿傩", "压力自己和别人+智慧"]
       },
       {
         name: "两面宿傩",
-        image: "assets/Ryomen_Sukuna.jpg",
+        image: "assets/fight/Ryomen_Sukuna.jpg",
         attrs: ["受肉体", "击杀五条悟", "狂妄+血性+傲慢"]
       },
       {
         name: "乙骨忧太",
-        image: "assets/Yuta_Okkotsu.jpg",
+        image: "assets/fight/Yuta_Okkotsu.jpg",
         attrs: ["人类", "重创夏油杰+仙台1v4+击杀羂索", "纯爱+认真"]
       },
       {
         name: "羂索",
-        image: "assets/Kenjaku.jpg",
+        image: "assets/fight/Kenjaku.jpg",
         attrs: ["无法归类", "封印五条悟+夺取天元", "狡诈+自私"]
       },
       {
         name: "伏黑甚尔",
-        image: "assets/Toji_Fushiguro.jpg",
+        image: "assets/fight/Toji_Fushiguro.jpg",
         attrs: ["人类", "差点击杀五条悟", "狂妄+杀手血性+亲情"]
       }
     ]
   },
   {
     name: "崩坏3",
-    title: "崩坏3·角色猜猜乐",
-    background: "assets/efback.jpg",                              
+    title: "崩坏3",
+    background: "assets/A_setting/image/efback.jpg",                              
     labels: ["性格", "重大事件", "台词"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "琪亚娜",
-        image: "assets/Kiana_Kaslana.jpg",
+        image: "assets/Break3/Kiana_Kaslana.jpg",
         attrs: ["激情+乐观+永不言败", "困于空律+觉醒薪炎+夺取终焉", "为世界上所有的美好而战"]
       },
       {
         name: "芽衣",
-        image: "assets/Raiden_Mei.jpg",
+        image: "assets/Break3/Raiden_Mei.jpg",
         attrs: ["贤惠+认真+守护", "觉醒雷律+进入往世乐土+继承始源", "比起这个世界，你更重要！"]
       },
       {
         name: "布洛妮娅",
-        image: "assets/Bronya_Zaychik.jpg",
+        image: "assets/Break3/Bronya_Zaychik.jpg",
         attrs: ["工作狂+活泼", "觉醒理律+成就真理+创业开发游戏", "重装小兔"]
       },
       {
         name: "希儿",
-        image: "assets/Seele_Vollerei.jpg",
+        image: "assets/Break3/Seele_Vollerei.jpg",
         attrs: ["仁爱/腹黑+天真/傲娇", "觉醒双重人格+锤爆量子之海+击败挲", "拜托了，另一个我！"]
       },
       {
         name: "爱莉希雅",
-        image: "assets/Elysia.jpg",
+        image: "assets/Break3/Elysia.jpg",
         attrs: ["人爱世人", "纯洁无暇的少女+花与飞鸟相伴+为人类牺牲", "这是因你而在的故事"]
       },
       {
         name: "奥托",
-        image: "assets/Otto.jpg",
+        image: "assets/Break3/Otto.jpg",
         attrs: ["纯爱+疯狂+自私+智慧", "主宰天命+改写虚数之树", "墓志铭太短，此生太长"]
       }
     ]
   },
   {
     name: "火影忍者",
-    title: "火影忍者·角色猜猜乐",
-    background: "assets/efback.jpg",                              
+    title: "火影忍者",
+    background: "assets/A_setting/image/efback.jpg",                              
     labels: ["外貌特征", "职位（所属）", "忍术特点"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "春野樱",
-        image: "assets/Sakura_Haruno.jpg",
+        image: "assets/fire/Sakura_Haruno.png",
         attrs: ["粉毛", "木叶", "怪力+治愈"]
       },
       {
         name: "宇智波斑",
-        image: "assets/Madara_Uchiha.jpg",
+        image: "assets/fire/Madara_Uchiha.jpg",
         attrs: ["黑色刺头", "族长", "开高达"]
       },
       {
         name: "波风水门",
-        image: "assets/Minato_Namikaze.jpg",
+        image: "assets/fire/Minato_Namikaze.jpg",
         attrs: ["黄毛", "火影", "速度快"]
       },
       {
         name: "迈特戴",
-        image: "assets/Might_Duy.jpg",
+        image: "assets/fire/Might_Duy.jpg",
         attrs: ["浓眉", "木叶下忍", "不会忍术"]
       },
       {
         name: "旗木卡卡西",
-        image: "assets/Kakashi_Hatake.jpg",
+        image: "assets/fire/Kakashi_Hatake.jpg",
         attrs: ["蒙面", "火影", "复制流"]
       },
       {
         name: "天道佩恩",
-        image: "assets/Tendo_Pain.jpg",
+        image: "assets/fire/Tendo_Pain.jpg",
         attrs: ["特殊的眼睛", "晓组织", "引力和斥力"]
       },
       {
         name: "大蛇丸",
-        image: "assets/Orochimaru.jpg",
+        image: "assets/fire/Orochimaru.jpg",
         attrs: ["长舌头", "木叶叛忍", "各种禁术"]
       },
       {
         name: "千手柱间",
-        image: "assets/Hashirama_Senju.jpg",
+        image: "assets/fire/Hashirama_Senju.jpg",
         attrs: ["黑长直", "火影", "经常被他人移植"]
       },
       {
         name: "宇智波止水",
-        image: "assets/Shisui_Uchiha.jpg",
+        image: "assets/fire/Shisui_Uchiha.jpg",
         attrs: ["刺头", "宇智波", "幻术"]
       },
       {
         name: "干柿鬼鲛",
-        image: "assets/Kisame_Hoshigaki.jpg",
+        image: "assets/fire/Kisame_Hoshigaki.jpg",
         attrs: ["身子很高", "叛忍", "'大坝谁修哈'"]
       }
     ]
   },
   {
     name: "明日方舟",
-    title: "明日方舟·角色猜猜乐",
-    background: "assets/efback.jpg",                              
+    title: "明日方舟",
+    background: "assets/A_setting/image/efback.jpg",                              
     labels: ["职业", "外貌特征", "性格"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "黍",
-        image: "assets/Shu.jpg",
+        image: "assets/ark/Shu.jpg",
         attrs: ["重装", "凉席平板+龙", "妈妈..."]
       },
       {
         name: "斯卡蒂",
-        image: "assets/Skadi.jpg",
+        image: "assets/ark/Skadi.jpg",
         attrs: ["近卫", "巨剑+白毛红瞳", "呆呆的+力气大"]
       },
       {
         name: "凯尔希",
-        image: "assets/Kaltsit.jpg",
+        image: "assets/ark/Kaltsit.jpg",
         attrs: ["医疗", "白绿猫猫", "冷淡+老女人"]
       },
       {
         name: "Mon3tr",
-        image: "assets/Mon3tr.jpg",
+        image: "assets/ark/Mon3tr.jpg",
         attrs: ["医疗", "黑绿猫猫", "哈气小猫"]
       },
       {
         name: "阿米娅",
-        image: "assets/Amiya.jpg",
+        image: "assets/ark/Amiya.jpg",
         attrs: ["术士+近卫+医疗", "棕色兔兔", "温柔坚定+重力"]
       },
       {
         name: "普瑞赛斯",
-        image: "assets/Priestess.jpg",
+        image: "assets/ark/Priestess.jpg",
         attrs: ["？？？", "黑长直+菱形瞳孔", "你忘^@了我&吗--#!"]
       },
-      {
+      /* 玛恩纳：assets/ark/Mlynar.jpg 文件缺失，先注释掉；
+         把图放进 assets/ark/ 后取消注释即可 */
+      /* {
         name: "玛恩纳",
-        image: "assets/Mlynar.jpg",
+        image: "assets/ark/Mlynar.jpg",
         attrs: ["近卫", "金色的马、佩剑", "一副命苦的模样"]
-      },
+      }, */
       {
         name: "酒神",
-        image: "assets/Tragodia.jpg",
+        image: "assets/ark/Tragodia.jpg",
         attrs: ["辅助", "黑色披肩+酒杯", "冷淡+冷静"]
       },
       {
         name: "蕾缪安",
-        image: "assets/Lemuen.jpg",
+        image: "assets/ark/Lemuen.jpg",
         attrs: ["狙击", "粉毛+轮椅+天使", "文静温和+疼爱小乐+腹黑"]
       },
       {
         name: "史尔特尔",
-        image: "assets/Surtr.jpg",
+        image: "assets/ark/Surtr.jpg",
         attrs: ["身子很高", "火焰巨人+巨剑", "嫌弃脸+高傲"]
       },
       {
         name: "琴柳",
-        image: "assets/Saileach.jpg",
+        image: "assets/ark/Saileach.jpg",
         attrs: ["先锋", "双麻花辫+超长黄发+有角+玉zu", "温柔亲和+阳光正直"]
       }
     ]
@@ -975,7 +1085,13 @@ const RANGES = [
 /* ================================================================
    二、抽奖时间 / 尺寸配置
    ================================================================ */
-const CELL_H = 60;                    // 每个词占的格子高度（px），要和 CSS 的 .reel-center/.reel-cell 一致
+/* 格子高度自适应：矮窗口（笔记本小窗、手机横屏）自动用小格子，整页更紧凑。
+   计算结果同步到 CSS 变量 --cell-h，.reel-window/.reel-cell/.reel-center 都引用它 */
+const CELL_H = (() => {
+  const h = window.innerHeight || 800;
+  return Math.round(Math.min(58, Math.max(42, (h - 230) / 7)));
+})();
+document.documentElement.style.setProperty("--cell-h", CELL_H + "px");
 const WIN_H = CELL_H * 2;             // 窗口高 2 格：中间一格完整显示，上下只各露半格
 const TOTAL_SPIN = 6.0;               // 一轮抽奖总耗时 6 秒
 const STOP_INTERVAL = 1.0;            // 相邻滚轮停止间隔 1.0 秒
@@ -1020,11 +1136,11 @@ function sfxTick() {
   playTone(1200, 850, 0.04, 0.07);
 }
 function sfxStop() { playTone(320, 120, 0.18, 0.22); }   // 某个滚轮停稳：低沉“咔哒”
-/* ---- 进入 IP 音效：assets/Ciallo.mp3 ---- */
+/* ---- 进入 IP 音效：assets/A_setting/music/Ciallo.mp3 ---- */
 let cialloSfx = null;
 function getCiallo() {
   if (!cialloSfx) {
-    cialloSfx = new Audio("assets/Ciallo.mp3");
+    cialloSfx = new Audio("assets/A_setting/music/Ciallo.mp3");
     cialloSfx.preload = "auto";
   }
   return cialloSfx;
@@ -1037,11 +1153,11 @@ function playCiallo() {
   const p = a.play();
   if (p && p.catch) p.catch(() => {});   // 播放失败就静默忽略
 }
-/* ---- 抽奖进行中的循环音效：assets/happy.mp3 ---- */
+/* ---- 抽奖进行中的循环音效：assets/A_setting/music/happy.mp3 ---- */
 let happySfx = null;
 function getHappy() {
   if (!happySfx) {
-    happySfx = new Audio("assets/happy.mp3");
+    happySfx = new Audio("assets/A_setting/music/happy.mp3");
     happySfx.preload = "auto";
     happySfx.loop = true;               // 关键：循环播放，直到抽奖结束
   }
@@ -1060,11 +1176,11 @@ function stopHappy() {
   happySfx.pause();
   happySfx.currentTime = 0;
 }
-/* ---- 谜底音效：assets/fish.mp3，每次点“谜底”播放 1 次 ---- */
+/* ---- 谜底音效：assets/A_setting/music/fish.mp3，每次点“谜底”播放 1 次 ---- */
 let fishSfx = null;
 function playFish() {
   if (!fishSfx) {
-    fishSfx = new Audio("assets/fish.mp3");
+    fishSfx = new Audio("assets/A_setting/music/fish.mp3");
     fishSfx.preload = "auto";
   }
   fishSfx.currentTime = 0;            // 重复点击时从头开始
@@ -1437,11 +1553,17 @@ $("devOverlay").addEventListener("click", e => {
 function fitLandscape() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  // 触摸设备竖屏时强制横屏；桌面或手机已横过来则不处理
-  // 检测触摸设备：QQ/微信等安卓定制内核经常不支持 pointer: coarse，
-  // 用 navigator.maxTouchPoints + ontouchstart 双重兜底更靠谱
-  const isTouch = (navigator.maxTouchPoints > 0) || ("ontouchstart" in window);
-  const needRotate = isTouch && vh > vw;
+  /* 计算背景图 cover 铺满 bgLayer 后的“显示宽度”，写给 --bgw：
+     首页用它把“请选择IP”退到背景图自带标题区的下方 */
+  function setBgw(layerW, layerH) {
+    const bgw = Math.max(layerW, layerH * 1080 / 608);  // 608/1080 = efback.jpg 宽高比
+    document.documentElement.style.setProperty("--bgw", bgw + "px");
+  }
+  // 触摸设备竖屏时强制横屏；桌面或手机已横过来则不处理。
+  // 必须用 UA 判断是否手机：带触摸屏的笔记本（Windows 触屏本）maxTouchPoints 也 > 0，
+  // 若只按触摸判断，桌面把窗口缩窄（高>宽）就会被误判成手机竖屏而整页旋转。
+  const isMobileUA = /Android|iPhone|iPad|Mobile|HarmonyOS/i.test(navigator.userAgent);
+  const needRotate = isMobileUA && vh > vw;
   const body = document.body;
   if (!needRotate) {
     body.classList.remove("force-landscape");
@@ -1449,10 +1571,41 @@ function fitLandscape() {
     body.style.height = "";
     body.style.transform = "";
     document.documentElement.style.overflow = "";
+    /* 桌面端抽奖页防溢出：窗口太矮时把整个抽奖页等比压缩（zoom），
+       保证三个按钮和提示语始终可见。
+       关键：必须先清掉上一次的 zoom 再测量——zoom 生效后 scrollHeight
+       返回的是缩放后的值，直接测量会误判“内容变矮”而反复清除/恢复，
+       表现为浏览器缩放后页面卡在错误状态不可逆 */
+    const gs = $("gameScreen");
+    gs.style.zoom = "";
+    gs.style.height = "";
+    if (gs.classList.contains("hidden")) {
+      document.documentElement.style.setProperty("--gz", 1);
+    } else {
+      const availH = vh - 24;                       // 24 = body 上下 padding
+      const naturalH = gs.scrollHeight;             // 未缩放状态的真实内容高度
+      const z = Math.min(1, availH / Math.max(naturalH, 1));
+      if (z < 0.995) {
+        gs.style.zoom = z;
+        /* zoom 后页面逻辑高度变大，用补偿高度让页面底边仍贴住屏幕底 */
+        gs.style.height = (availH / z) + "px";
+        /* 标题落位用的是屏幕像素（--bgw），zoom 会把它等比缩小，
+           除以 --gz 抵消，保证仍紧贴背景图标题区 */
+        document.documentElement.style.setProperty("--gz", z);
+      } else {
+        document.documentElement.style.setProperty("--gz", 1);
+      }
+    }
+    setBgw(vw, vh);
     return;
   }
   body.classList.add("force-landscape");
   document.documentElement.style.overflow = "hidden";
+  /* 清掉桌面分支可能设置的抽奖页缩放：旋转模式下由 body 的 scale(k) 统一负责 */
+  const gs = $("gameScreen");
+  gs.style.zoom = "";
+  gs.style.height = "";
+  document.documentElement.style.setProperty("--gz", 1);
   // 第一步：旋转后可视宽度 = 屏幕高 vh，先把 body 设成这个宽度，
   // 量出内容在此宽度下的真实高度
   body.style.width = vh + "px";
@@ -1467,6 +1620,7 @@ function fitLandscape() {
   // 平移 + 旋转 + 缩放：让画面刚好铺满整个竖屏（transform-origin 在左上角）
   body.style.transform =
     "translateX(" + vw + "px) rotate(90deg) scale(" + k + ")";
+  setBgw(vh / k, vw / k);                 // 旋转后 bgLayer 尺寸 = body 尺寸
 }
 window.addEventListener("resize", fitLandscape);
 window.addEventListener("orientationchange", () => {
