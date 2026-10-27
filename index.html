@@ -593,9 +593,10 @@
     overflow: hidden;
     transform-origin: top left;
   }
-  /* 旋转后弹窗面板的“高度”方向对应屏幕短边，限制一下防止超出屏幕 */
+  /* 旋转模式下弹窗面板尺寸由 JS 按 body 逻辑尺寸精确设置（见 fitLandscape），
+     保证谜底图片+文字一次展示完，不需要内部滚动 */
   body.force-landscape #panel {
-    max-height: 86vw;
+    overflow-y: hidden;
   }
   /* 强制横屏时 body 高度由 JS 精确设定，补上 100% 高度链，
      让首页“标题固定 + 列表滚动”在旋转模式下同样生效 */
@@ -1571,6 +1572,9 @@ function fitLandscape() {
     body.style.height = "";
     body.style.transform = "";
     $("app").style.maxWidth = "";                   // 清掉旋转模式设置的列宽限制
+    const panel = $("panel");
+    panel.style.width = "";                         // 清掉旋转模式设置的弹窗尺寸
+    panel.style.maxHeight = "";
     document.documentElement.style.overflow = "";
     /* 桌面端抽奖页防溢出：窗口太矮时把整个抽奖页等比压缩（zoom），
        保证三个按钮和提示语始终可见。
@@ -1580,6 +1584,15 @@ function fitLandscape() {
     const gs = $("gameScreen");
     gs.style.zoom = "";
     gs.style.height = "";
+    /* 弹窗防滚动：视口偏矮（手机物理横屏、小窗）时压缩弹窗和图片上限，
+       保证图片+名字+提示一次展示完；桌面正常高度用 CSS 默认值 */
+    if (vh < 760) {
+      panel.style.maxHeight = (vh - 24) + "px";
+      $("popImg").style.maxHeight = Math.round(vh * 0.52) + "px";
+    } else {
+      panel.style.maxHeight = "";
+      $("popImg").style.maxHeight = "";
+    }
     if (gs.classList.contains("hidden")) {
       document.documentElement.style.setProperty("--gz", 1);
     } else {
@@ -1620,6 +1633,13 @@ function fitLandscape() {
   const k = Math.min(1, vw / 760, vw / Math.max(contentH, 1));
   body.style.width = (vh / k) + "px";
   body.style.height = (vw / k) + "px";
+  /* 谜底弹窗：按 body 逻辑尺寸设置面板宽高——宽不超过 body 宽的 94%、
+     高不超过 body 高的 92%。内容（图 480 + 名字 + 提示 ≈ 620px）总能放进
+     ≥760 的逻辑高度里，因此不需要滚动，和电脑端一样一次展示完 */
+  const panel = $("panel");
+  panel.style.width = Math.min(1140, (vh / k) * 0.94) + "px";
+  panel.style.maxHeight = Math.round((vw / k) * 0.92) + "px";
+  $("popImg").style.maxHeight = "";       // 旋转模式面板足够高，图片用 CSS 默认上限
   // 平移 + 旋转 + 缩放：让画面刚好铺满整个竖屏（transform-origin 在左上角）
   body.style.transform =
     "translateX(" + vw + "px) rotate(90deg) scale(" + k + ")";
