@@ -17,8 +17,8 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { overflow-x: hidden; }                       /* 防止扩大的 fixed 层在某些内核撑出横向滚动条 */
   html, body {
-    background: #181a30;                              /* 没配背景图时的深蓝紫底色 */
-    color: #f0f2ff;
+    background: #fdf3dd;                              /* 与 efback.jpg 同系的奶油底色 */
+    color: #4a3a1e;                                   /* 暖棕色正文 */
     font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
     min-height: 100%;
     -webkit-tap-highlight-color: transparent;       /* 手机点击按钮时不闪灰色块 */
@@ -33,7 +33,7 @@
     position: fixed;
     inset: 0;
     z-index: 0;
-    background-color: #181a30;
+    background-color: #fdf3dd;
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
@@ -50,7 +50,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: rgba(18, 20, 42, var(--bg-dim, 0.74));
+    background: rgba(74, 48, 8, var(--bg-dim, 0.74)); /* 暖棕压暗，和橙色背景同调 */
   }
   /* 所有内容的舞台：要浮在背景层之上 */
   #app {
@@ -87,11 +87,19 @@
     height: auto;
     margin: 0 auto 8px;
     transform: translateX(-7.43%);
+    filter: drop-shadow(0 5px 10px rgba(196, 138, 40, 0.35));  /* 标题图加暖色投影，浮出背景 */
   }
   #homeScreen .sub {
-    color: #c6cadb;
+    display: inline-block;                            /* 做成胶囊徽章，而不是一行裸文字 */
+    padding: 4px 26px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(242, 169, 59, 0.55);
+    box-shadow: 0 2px 6px rgba(196, 138, 40, 0.2);
+    color: #a97b2f;
     font-size: clamp(15px, 3vw, 18px);
-    margin-bottom: 28px;
+    margin-bottom: 26px;
+    letter-spacing: 4px;
   }
   /* IP 列表：占满标题以下的剩余空间，卡片多了就在这个区域内部滚动 */
   #rangeList {
@@ -99,30 +107,72 @@
     min-height: 0;                                  /* flex 子元素想内部滚动，必须加这一行 */
     overflow-y: auto;
   }
-  /* 范围卡片：用按钮做，整块都可以点 */
+  /* 范围卡片：奶白半透明卡片 + 橙金描边，与波点背景同调。
+     外观轮廓：左侧竖色条做视觉锚点，右侧“›”箭头提示可点，
+     悬停时上浮+箭头右移。 */
   .range-card {
+    position: relative;
     display: block;
     width: 100%;
     max-width: 520px;                               /* 手机强制横屏时布局宽度可能被拉得很宽，限住卡片不让按钮巨大 */
     margin: 0 auto 16px;
-    padding: 22px 18px;
-    background: rgba(38, 42, 72, 0.92);
-    border: 2px solid #ffc83c;
-    border-radius: 14px;
-    color: #f0f2ff;
+    padding: 20px 46px 20px 26px;                   /* 右侧留出箭头的位置 */
+    background: linear-gradient(135deg, rgba(255, 252, 243, 0.95), rgba(255, 240, 209, 0.92));
+    border: 2px solid #f2a93b;
+    border-radius: 18px;
+    box-shadow: 0 3px 10px rgba(196, 138, 40, 0.25), inset 0 0 0 3px rgba(255, 255, 255, 0.55);
+    color: #5a431f;
     font-size: clamp(19px, 4vw, 23px);
     font-weight: bold;
+    text-align: left;
     cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
     touch-action: manipulation;                        /* 触摸立即响应 */
     -webkit-tap-highlight-color: transparent;
   }
-  .range-card:active { background: #31365c; }
+  /* 左侧竖色条：圆头短棒，像书签一样卡在卡片左缘 */
+  .range-card::before {
+    content: "";
+    position: absolute;
+    left: -2px;
+    top: 14px;
+    bottom: 14px;
+    width: 6px;
+    border-radius: 0 6px 6px 0;
+    background: linear-gradient(#f7b733, #e8890c);
+  }
+  /* 右侧箭头：提示“点进去” */
+  .range-card::after {
+    content: "›";
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-54%);
+    font-size: 30px;
+    line-height: 1;
+    color: #e8890c;
+    transition: transform 0.12s ease;
+  }
+  /* 悬停上浮只给真正有鼠标的设备（电脑）；
+     手机触屏点按后 :hover 会“粘住”不消失，导致卡片一直浮起 */
+  @media (hover: hover) and (pointer: fine) {
+    .range-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(196, 138, 40, 0.35), inset 0 0 0 3px rgba(255, 255, 255, 0.55);
+    }
+    .range-card:hover::after { transform: translateY(-54%) translateX(4px); }
+  }
+  .range-card:active {
+    transform: translateY(1px) scale(0.99);
+    filter: brightness(0.97);
+    box-shadow: 0 2px 6px rgba(196, 138, 40, 0.3);
+  }
   .range-card .count {
     display: block;
-    margin-top: 6px;
+    margin-top: 4px;
     font-size: 13px;
     font-weight: normal;
-    color: #b4b9d4;
+    color: #b08d55;
   }
 
   /* ============================================================
@@ -130,13 +180,14 @@
      ============================================================ */
   #gameTitle {
     text-align: center;
-    color: #000000;                                   /* 黑色标题 */
+    color: #4a3a1e;                                   /* 暖棕标题，压在奶油背景上 */
     font-size: clamp(22px, 5vw, 32px);
     margin: 14px 0 22px;
-    /* 黑色字在深色背景上容易糊，加一圈浅色描边光晕保证看得清 */
+    letter-spacing: 2px;
+    /* 浅色背景改用柔和的白色高光+暖色投影，保证立体感又不糊 */
     text-shadow:
-      0 0 4px rgba(255, 255, 255, 0.85),
-      0 1px 3px rgba(255, 255, 255, 0.6);
+      0 1px 0 rgba(255, 255, 255, 0.9),
+      0 2px 6px rgba(196, 138, 40, 0.35);
   }
   .reel-row {
     display: flex;
@@ -148,9 +199,9 @@
     text-align: center;
     font-size: clamp(16px, 3.6vw, 21px);
     font-weight: bold;
-    color: #ffc83c;
+    color: #d97b00;
     margin-right: 10px;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
   }
   /* 竖向滚动窗口：高 2 格（CELL_H 60px × 2 = 120px）。
      中间一格完整显示抽中的词，上下相邻的词只各露半格 */
@@ -158,9 +209,25 @@
     position: relative;
     flex: 1;
     height: 120px;
-    background: rgba(38, 42, 72, 0.85);               /* 半透明，背景图能隐约透出 */
-    border-radius: 10px;
+    background: rgba(255, 250, 236, 0.85);            /* 奶白半透明，与背景融为一体 */
+    border: 2px solid rgba(242, 169, 59, 0.6);
+    border-radius: 14px;
+    box-shadow: inset 0 2px 8px rgba(196, 138, 40, 0.18), 0 3px 8px rgba(196, 138, 40, 0.18);
     overflow: hidden;                                  /* 关键：裁掉窗外的文字 */
+  }
+  /* 老虎机滚筒质感：上下两条暖色渐变，模拟滚筒曲面明暗，
+     中间亮、上下暗，让窗口看起来像个“鼓” */
+  .reel-window::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      rgba(196, 138, 40, 0.28),
+      rgba(255, 255, 255, 0) 32%,
+      rgba(255, 255, 255, 0) 68%,
+      rgba(196, 138, 40, 0.28));
   }
   /* 正中央的金色选中框（一条与窗口同宽的横向高亮带） */
   .reel-center {
@@ -170,13 +237,13 @@
     top: 50%;
     height: 60px;                                     
     transform: translateY(-50%);
-    border: 3px solid #ffc83c;
+    border: 3px solid #f59e0b;
     border-radius: 8px;
     pointer-events: none;                              /* 不挡触摸 */
   }
   /* 该滚轮停稳后，选中框发光提示 */
   .reel-row.done .reel-center {
-    box-shadow: 0 0 12px rgba(255, 200, 60, 0.75);
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.65);
   }
   /* 滚动的文字格子：宽度占满窗口（长词可自动换行），JS 每帧改 translateY。
      初始 opacity:0（不可见），点开始后才淡入显示 */
@@ -196,12 +263,13 @@
     word-break: break-word;
     padding: 0 10px;
     overflow: hidden;                                  /* 超过两行就裁掉，不影响相邻格 */
-    color: #8b90a8;                                    /* 未抽中的词：灰色 */
-    opacity: 0;                                        /* 初始隐藏，避免堆叠 */
+    color: #c9b48c;                                   /* 未抽中的词：暖灰 */
+    opacity: 0;                                       /* 初始隐藏，避免堆叠 */
     transition: opacity 0.3s;
   }
   .reel-cell.on {
-    color: #ffffff;                                    /* 正中央（抽中）的词：亮白 */
+    color: #4a3a1e;                                   /* 正中央（抽中）的词：深棕加粗醒目 */
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
   }
   /* 窗口中央的“?”占位符为还没点开始时的提示 */
   .reel-placeholder {
@@ -211,7 +279,7 @@
     transform: translate(-50%, -50%);
     font-size: 40px;
     font-weight: bold;
-    color: #5a5f78;
+    color: #d9c49a;
     pointer-events: none;                              /* 不挡点击 */
   }
   /* 底部三个椭圆按钮 */
@@ -250,14 +318,18 @@
     filter: grayscale(1) opacity(0.55);
     cursor: not-allowed;
   }
-  /* 每个 IP 抽奖界面底部的专属提示语（每个界面内容不同） */
+  /* 每个 IP 抽奖界面底部的专属提示语：做成小胶囊贴条，不再是裸文字 */
   #gameTip {
-    margin-top: 32px;                                  /* 往下移，和按钮拉开距离 */
+    margin: 30px auto 0;
+    max-width: 520px;
+    padding: 6px 18px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px dashed rgba(217, 123, 0, 0.5);
     text-align: center;
-    color: #9a9fb5;
+    color: #a97b2f;
     font-size: clamp(11px, 2.6vw, 14px);               /* 字体缩小 */
     line-height: 1.5;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   }
   /* ============================================================
      第四部分：谜底弹窗
@@ -266,7 +338,7 @@
     position: fixed;
     /* 电脑端正常铺满即可，强制横屏时再扩圈（见 body.force-landscape #overlay） */
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(96, 60, 10, 0.4);
     display: none;
     justify-content: center;
     align-items: center;
@@ -285,9 +357,10 @@
     max-width: 90%;
     max-height: 90vh;
     overflow-y: auto;                                 /* 内容太长时面板内部滚动 */
-    background: #262a48;
-    border: 2px solid #ffc83c;
-    border-radius: 14px;
+    background: #fffaf0;
+    border: 2px solid #f2a93b;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(120, 75, 15, 0.35);
     padding: 16px;
     text-align: center;
     cursor: default;
@@ -295,7 +368,9 @@
   #popImg {
     max-width: 100%;
     max-height: 480px;                                /* 旧版 240px 的 2 倍 */
-    border-radius: 10px;
+    border-radius: 12px;
+    border: 3px solid #f2a93b;
+    box-shadow: 0 4px 14px rgba(196, 138, 40, 0.3);
     display: none;                                    /* 没图时隐藏 */
     margin: 0 auto;
   }
@@ -304,24 +379,28 @@
     display: none;                                    /* 没图时显示 */
     align-items: center;
     justify-content: center;
-    background: #373c5f;
+    background: #f5e8cc;
     border-radius: 10px;
-    color: #969cb4;
+    color: #a98d5c;
     font-size: 16px;
     margin-bottom: 10px;
   }
   #popName {
-    color: #ffc83c;
+    color: #d97b00;
     font-size: 28px;
-    margin: 10px 0 6px;
+    margin: 12px auto 8px;
+    display: inline-block;
+    padding: 2px 22px;
+    border-bottom: 3px solid #f2a93b;                 /* 名字下加橙金短下划线，像奖牌绶带 */
+    border-radius: 0 0 10px 10px;
   }
-  #popHint { color: #969cb4; font-size: 14px; }
+  #popHint { color: #a98d5c; font-size: 14px; }
 
   /* ---- 开发者验证弹窗（点右下角版本号触发）---- */
   #devOverlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(96, 60, 10, 0.45);
     display: none;
     justify-content: center;
     align-items: center;
@@ -334,14 +413,15 @@
   #devPanel {
     width: 300px;
     max-width: 86%;
-    background: #262a48;
-    border: 2px solid #ffc83c;
-    border-radius: 12px;
+    background: #fffaf0;
+    border: 2px solid #f2a93b;
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(120, 75, 15, 0.35);
     padding: 18px 16px;
     text-align: center;
   }
   .dev-title {
-    color: #ffc83c;
+    color: #d97b00;
     font-weight: bold;
     font-size: 17px;
     margin-bottom: 12px;
@@ -350,17 +430,17 @@
     width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid #5a5f78;
-    background: #181a30;
-    color: #f0f2ff;
+    border: 1px solid #d9c49a;
+    background: #ffffff;
+    color: #4a3a1e;
     font-size: 16px;
     outline: none;
   }
-  #devPwd:focus { border-color: #ffc83c; }
+  #devPwd:focus { border-color: #f2a93b; }
   #devErr {
     min-height: 20px;
     margin-top: 8px;
-    color: #ff6b6b;
+    color: #d9534f;
     font-size: 13px;
   }
   .dev-btns {
@@ -372,22 +452,22 @@
     flex: 1;
     padding: 9px 0;
     border-radius: 8px;
-    border: 1px solid #ffc83c;
+    border: 1px solid #f2a93b;
     font-size: 15px;
     font-weight: bold;
     cursor: pointer;
   }
-  #devOk { background: #ffc83c; color: #262a48; }
-  #devCancel { background: transparent; color: #c6cadb; }
+  #devOk { background: #f2a93b; color: #fffaf0; }
+  #devCancel { background: transparent; color: #8a7a55; }
   /* 右下角版本号：外观隐蔽，但可点击唤起开发者验证 */
   #ver {
     position: fixed;
     right: 10px;
     bottom: 8px;
     z-index: 2;
-    color: #aab0cc;
+    color: rgba(74, 48, 8, 0.45);
     font-size: 13px;
-    text-shadow: 0 1px 3px #000;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
     cursor: pointer;                              /* 鼠标悬停显示小手，外观不变 */
     user-select: none;                           /* 防止连点时选中文字 */
     -webkit-tap-highlight-color: transparent;    /* 手机点击不出现蓝块 */
