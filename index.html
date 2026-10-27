@@ -419,6 +419,14 @@
      让首页“标题固定 + 列表滚动”在旋转模式下同样生效 */
   body.force-landscape #app { height: 100%; }
   body.force-landscape #homeScreen { height: 100%; }
+  /* 强制横屏时 body rotate(90deg)，title.png 里的横向英文
+     "EF ANIME CLUB" 被旋成竖向读。给它反向 rotate(-90deg)
+     抵消角度即可——body 的 translateX(vw) 和 scale(k) 自动继承，
+     title.png 自然跟着居中，不需要额外补偿 */
+  body.force-landscape #titleImg {
+    transform: rotate(-90deg);
+    transform-origin: center;
+  }
 </style>
 </head>
 <body>
@@ -470,7 +478,7 @@
   </div>
 </div>
 
-<div id="ver">v20</div>
+<div id="ver">v21r</div>
 
 <script>
 "use strict";
@@ -1357,11 +1365,11 @@ $("devOverlay").addEventListener("click", e => {
 function fitLandscape() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
+  // 触摸设备竖屏时强制横屏；桌面或手机已横过来则不处理
   // 检测触摸设备：QQ/微信等安卓定制内核经常不支持 pointer: coarse，
   // 用 navigator.maxTouchPoints + ontouchstart 双重兜底更靠谱
   const isTouch = (navigator.maxTouchPoints > 0) || ("ontouchstart" in window);
-  // 小屏触摸设备竖屏时强制横屏；桌面或手机已横过来则不处理
-  const needRotate = isTouch && vh > vw && Math.max(vw, vh) < 1024;
+  const needRotate = isTouch && vh > vw;
   const body = document.body;
   if (!needRotate) {
     body.classList.remove("force-landscape");
