@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <!-- 首屏关键资源优先级预加载：浏览器比 JS 更早开始下载 -->
-<link rel="preload" as="image" href="assets/A_setting/image/push_button_start.png">
-<link rel="preload" as="image" href="assets/A_setting/image/push_button_answer.png">
-<link rel="preload" as="image" href="assets/A_setting/image/push_button_back.png">
-<link rel="preload" as="image" href="assets/A_setting/image/efback.jpg">
+<link rel="preload" as="image" href="A_setting/image/push_button_start.png">
+<link rel="preload" as="image" href="A_setting/image/push_button_answer.png">
+<link rel="preload" as="image" href="A_setting/image/push_button_back.png">
+<link rel="preload" as="image" href="A_setting/image/efback.jpg">
 <title>翼遥动漫社-角色猜猜乐</title>
 <style>
   /* ============================================================
@@ -401,9 +401,9 @@
     transition: transform 0.08s ease, filter 0.1s ease;
   }
   /* 三个按钮各自的图片 */
-  #btnStart { background-image: url("assets/A_setting/image/push_button_start.png"); }
-  #btnAnswer { background-image: url("assets/A_setting/image/push_button_answer.png"); }
-  #btnBack { background-image: url("assets/A_setting/image/push_button_back.png"); }
+  #btnStart { background-image: url("A_setting/image/push_button_start.png"); }
+  #btnAnswer { background-image: url("A_setting/image/push_button_answer.png"); }
+  #btnBack { background-image: url("A_setting/image/push_button_back.png"); }
   .oval-btn:active {
     transform: scale(0.93);                           /* 按下去缩一下，像真按钮 */
     filter: brightness(0.92);
@@ -667,7 +667,7 @@
 /* ================================================================
    一、数据配置区（RANGES 数组）
    ================================================================ */
-const HOME_BACKGROUND = "assets/A_setting/image/efback.jpg";
+const HOME_BACKGROUND = "A_setting/image/efback.jpg";
 const HOME_DIM = 0;
 const RANGES = [
   {
@@ -676,7 +676,7 @@ const RANGES = [
     // title：进入后页面顶部的标题
     title: "鸣潮",
     // background：这个 IP 抽奖界面的背景图路径（没有就填 null）
-    background: "assets/A_setting/image/efback.jpg",                              // 例如 "assets/bg-anime.jpg"
+    background: "A_setting/image/efback.jpg",                              // 例如 "bg-anime.jpg"
     // labels：三行滚轮左边的标签
     labels: ["地区", "外观", "性格"],
     // tip：这个 IP 抽奖界面最底部的专属提示语
@@ -685,57 +685,57 @@ const RANGES = [
     characters: [
       {
         name: "爱弥斯",
-        image: "assets/Wuwa/Aemeath.jpg",
+        image: "Wuwa/Aemeath.jpg",
         attrs: ["拉海洛", "粉毛+驾驶服+星星眼", "救世主+爱"]
       },
       {
         name: "守岸人",
-        image: "assets/Wuwa/Shorekeeper.jpg",
+        image: "Wuwa/Shorekeeper.jpg",
         attrs: ["黑海岸", "蓝毛+头纱+蝴蝶", "守候+三无"]
       },
       {
         name: "卡提希娅",
-        image: "assets/Wuwa/Cartethyia.jpg",
+        image: "Wuwa/Cartethyia.jpg",
         attrs: ["黎那汐塔", "黄毛+荆棘冠+可大可小", "活跃+坚强"]
       },
       {
         name: "心月狐",
-        image: "assets/Wuwa/Xiyuehu.jpg",
+        image: "Wuwa/Xiyuehu.jpg",
         attrs: ["梦州", "白/黑/黄/蓝毛+大尾巴+狐耳", "一心为民+贪玩"]
       },
       {
         name: "今汐",
-        image: "assets/Wuwa/Jinhsi.jpg",
+        image: "Wuwa/Jinhsi.jpg",
         attrs: ["今州", "白毛+龙角龙鳞", "坚强+腼腆"]
       },
       {
         name: "莫宁",
-        image: "assets/Wuwa/Mornye.jpg",
+        image: "Wuwa/Mornye.jpg",
         attrs: ["拉海洛", "白毛+红瞳+义肢", "腼腆+向往理想"]
       },
       {
         name: "千咲",
-        image: "assets/Wuwa/Chisa.jpg",
+        image: "Wuwa/Chisa.jpg",
         attrs: ["拉海洛+苇原", "黑长直+红瞳+JK", "腼腆"]
       },
       {
         name: "琳奈",
-        image: "assets/Wuwa/Lynae.jpg",
+        image: "Wuwa/Lynae.jpg",
         attrs: ["拉海洛-新联邦", "黑/黄毛+轮滑鞋+辣妹", "啥子+忍辱负重"]
       },
       {
         name: "秧秧",
-        image: "assets/Wuwa/Yangyang.jpg",
+        image: "Wuwa/Yangyang.jpg",
         attrs: ["今州", "黑/白/蓝毛+羽化发型", "神秘写信女+坚强"]
       },
       {
         name: "清宵",
-        image: "assets/Wuwa/Qingxiao.jpg",
+        image: "Wuwa/Qingxiao.jpg",
         attrs: ["梦州", "蓝毛+白丝", "清冷+压抑"]
       },
       {
         name: "达妮娅",
-        image: "assets/Wuwa/Denia.jpg",
+        image: "Wuwa/Denia.jpg",
         attrs: ["拉海洛-残星会", "粉毛+水蜜桃", "双重人格+一颗属于人的心"]
       }
     ]
@@ -743,63 +743,63 @@ const RANGES = [
   {
     name: "月亮计划",
     title: "月亮计划",
-    background: "assets/A_setting/image/efback.jpg",                              // 例如 "assets/bg-history.jpg"
+    background: "A_setting/image/efback.jpg",                              // 例如 "bg-history.jpg"
     labels: ["主要出现作品", "所属", "相关言行"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "艾因",
-        image: "assets/Limbus/Ayin.jpg",
+        image: "Limbus/Ayin.jpg",
         attrs: ["脑叶公司", "L公司+光之种", "建立L公司+完成光之种计划"]
       },
       {
         name: "卡门",
-        image: "assets/Limbus/Carmen.jpg",
+        image: "Limbus/Carmen.jpg",
         attrs: ["脑叶公司+废墟图书馆+边狱巴士", "光之种", "异想体之母+引导人们直面自我"]
       },
       {
         name: "安吉拉",
-        image: "assets/Limbus/Angela.jpg",
+        image: "Limbus/Angela.jpg",
         attrs: ["脑叶公司+废墟图书馆", "L公司", "背叛光之种计划+建立图书馆+试图成为人类"]
       },
       {
         name: "罗兰",
-        image: "assets/Limbus/Roland.jpg",
+        image: "Limbus/Roland.jpg",
         attrs: ["废墟图书馆", "图书馆", "一码归一码"]
       },
       {
         name: "红姐",
-        image: "assets/Limbus/Redmist.jpg",
+        image: "Limbus/Redmist.jpg",
         attrs: ["脑叶公司+废墟图书馆", "L公司", "血雾弥漫，尸横遍野"]
       },
       {
         name: "孔丘",
-        image: "assets/Limbus/Jiaqiu.jpg",
+        image: "Limbus/Jiaqiu.jpg",
         attrs: ["边狱巴士", "小指", "一人守住铁槛寺+一棍五望击杀雷横"]
       },
       {
         name: "里恩",
-        image: "assets/Limbus/Rien.jpg",
+        image: "Limbus/Rien.jpg",
         attrs: ["边狱巴士", "食指+蜘蛛巢", "模仿漆黑噤默"]
       },
       {
         name: "马蒂亚斯",
-        image: "assets/Limbus/Matthias.jpg",
+        image: "Limbus/Matthias.jpg",
         attrs: ["边狱巴士", "中指+蜘蛛巢", "牺牲家人"]
       },
       {
         name: "卡利斯托",
-        image: "assets/Limbus/Callisto.jpg",
+        image: "Limbus/Callisto.jpg",
         attrs: ["边狱巴士", "环指+蜘蛛巢", "落魄的大师+优质画廊"]
       },
       {
         name: "阿赖耶",
-        image: "assets/Limbus/Alaya.jpg",
+        image: "Limbus/Alaya.jpg",
         attrs: ["边狱巴士", "良秀+蜘蛛巢", "我想要成为妈妈的妈妈"]
       },
       {
         name: "瓦伦希娜",
-        image: "assets/Limbus/Valencina.jpg",
+        image: "Limbus/Valencina.jpg",
         attrs: ["边狱巴士", "拇指+蜘蛛巢", "怎么，打不中吗？+心脏！给我瞄准心脏啊！"]
       }
     ]
@@ -807,58 +807,58 @@ const RANGES = [
   {
     name: "原神",
     title: "原神",
-    background: "assets/A_setting/image/efback.jpg",                              // 例如 "assets/bg-history.jpg"
+    background: "A_setting/image/efback.jpg",                              // 例如 "bg-history.jpg"
     labels: ["称号", "别号", "提示"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "荧",
-        image: "assets/Genshin/Lumine.jpg",
+        image: "Genshin/Lumine.jpg",
         attrs: ["旅行者", "哑巴+小黄毛", "人品高到令人发指的程度"]
       },
       {
         name: "菲林斯",
-        image: "assets/Genshin/Flins.jpg",
+        image: "Genshin/Flins.jpg",
         attrs: ["诡灯陌影", "雷系神人", "超级礼貌超级典雅的老家伙"]
       },
       {
         name: "桑多涅",
-        image: "assets/Genshin/Sandrone.jpg",
+        image: "Genshin/Sandrone.jpg",
         attrs: ["镜水析谬", "析构万理的发条公主", "傲娇小猫"]
       },
       {
         name: "芙宁娜",
-        image: "assets/Genshin/Furina.jpg",
+        image: "Genshin/Furina.jpg",
         attrs: ["不休独舞", "水系小蛋糕", "超级害怕某恐怖香菇眼"]
       },
       {
         name: "爱可菲",
-        image: "assets/Genshin/Escoffier.jpg",
+        image: "Genshin/Escoffier.jpg",
         attrs: ["明绚干韵", "甜点大校", "超级超级敬仰某水系小蛋糕"]
       },
       {
         name: "胡桃",
-        image: "assets/Genshin/Hu_Tao.jpg",
+        image: "Genshin/Hu_Tao.jpg",
         attrs: ["雪霁梅香", "第七七代堂主", "璃月打油诗第一人"]
       },
       {
         name: "雷电将军",
-        image: "assets/Genshin/Ei.jpg",
+        image: "Genshin/Ei.jpg",
         attrs: ["一心净土", "御建鸣神主尊大御所大人", "三彩团子爱好者"]
       },
       {
         name: "洛恩",
-        image: "assets/Genshin/Lonen.jpg",
+        image: "Genshin/Lonen.jpg",
         attrs: ["恣锐锋镞", "骑士团第五小队队长", "仁蔼骑士"]
       },
       {
         name: "雅珂达",
-        image: "assets/Genshin/Arlecchino.jpg",
+        image: "Genshin/Arlecchino.jpg",
         attrs: ["系风攘影", "秘闻馆二把手", "喜欢某机器人的拥抱"]
       },
       {
         name: "戴因斯雷布",
-        image: "assets/Genshin/Dainsleif.jpg",
+        image: "Genshin/Dainsleif.jpg",
         attrs: ["未来与过去的节点", "疑似第六大罪人", "最爱坎瑞亚之人"]
       }
     ]
@@ -866,53 +866,53 @@ const RANGES = [
   {
     name: "咒术回战",
     title: "咒术回战",
-    background: "assets/A_setting/image/efback.jpg",                              
+    background: "A_setting/image/efback.jpg",                              
     labels: ["种族", "战绩", "性格"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "五条悟",
-        image: "assets/fight/Satoru_Gojo.jpg",
+        image: "fight/Satoru_Gojo.jpg",
         attrs: ["人类", "击杀甚尔+重创宿傩", "伟大+理性+智慧"]
       },
       {
         name: "夏油杰",
-        image: "assets/fight/Suguru_Geto.jpg",
+        image: "fight/Suguru_Geto.jpg",
         attrs: ["人类", "发动百鬼夜行", "认真+傲慢+黑暗"]
       },
       {
         name: "虎杖悠仁",
-        image: "assets/fight/Yuji_Itadori.jpg",
+        image: "fight/Yuji_Itadori.jpg",
         attrs: ["人类", "八连黑闪+击败宿傩", "激情+仁爱"]
       },
       {
         name: "秤金次",
-        image: "assets/fight/Kinji_Hakari.jpg",
+        image: "fight/Kinji_Hakari.jpg",
         attrs: ["人类", "击败鹿紫云一", "赌徒+疯狂"]
       },
       {
         name: "东堂葵",
-        image: "assets/fight/Aoi_Todo.jpg",
+        image: "fight/Aoi_Todo.jpg",
         attrs: ["人类", "辅助击败真人+辅助击败宿傩", "压力自己和别人+智慧"]
       },
       {
         name: "两面宿傩",
-        image: "assets/fight/Ryomen_Sukuna.jpg",
+        image: "fight/Ryomen_Sukuna.jpg",
         attrs: ["受肉体", "击杀五条悟", "狂妄+血性+傲慢"]
       },
       {
         name: "乙骨忧太",
-        image: "assets/fight/Yuta_Okkotsu.jpg",
+        image: "fight/Yuta_Okkotsu.jpg",
         attrs: ["人类", "重创夏油杰+仙台1v4+击杀羂索", "纯爱+认真"]
       },
       {
         name: "羂索",
-        image: "assets/fight/Kenjaku.jpg",
+        image: "fight/Kenjaku.jpg",
         attrs: ["无法归类", "封印五条悟+夺取天元", "狡诈+自私"]
       },
       {
         name: "伏黑甚尔",
-        image: "assets/fight/Toji_Fushiguro.jpg",
+        image: "fight/Toji_Fushiguro.jpg",
         attrs: ["人类", "差点击杀五条悟", "狂妄+杀手血性+亲情"]
       }
     ]
@@ -920,38 +920,38 @@ const RANGES = [
   {
     name: "崩坏3",
     title: "崩坏3",
-    background: "assets/A_setting/image/efback.jpg",                              
+    background: "A_setting/image/efback.jpg",                              
     labels: ["性格", "重大事件", "台词"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "琪亚娜",
-        image: "assets/Break3/Kiana_Kaslana.jpg",
+        image: "Break3/Kiana_Kaslana.jpg",
         attrs: ["激情+乐观+永不言败", "困于空律+觉醒薪炎+夺取终焉", "为世界上所有的美好而战"]
       },
       {
         name: "芽衣",
-        image: "assets/Break3/Raiden_Mei.jpg",
+        image: "Break3/Raiden_Mei.jpg",
         attrs: ["贤惠+认真+守护", "觉醒雷律+进入往世乐土+继承始源", "比起这个世界，你更重要！"]
       },
       {
         name: "布洛妮娅",
-        image: "assets/Break3/Bronya_Zaychik.jpg",
+        image: "Break3/Bronya_Zaychik.jpg",
         attrs: ["工作狂+活泼", "觉醒理律+成就真理+创业开发游戏", "重装小兔"]
       },
       {
         name: "希儿",
-        image: "assets/Break3/Seele_Vollerei.jpg",
+        image: "Break3/Seele_Vollerei.jpg",
         attrs: ["仁爱/腹黑+天真/傲娇", "觉醒双重人格+锤爆量子之海+击败挲", "拜托了，另一个我！"]
       },
       {
         name: "爱莉希雅",
-        image: "assets/Break3/Elysia.jpg",
+        image: "Break3/Elysia.jpg",
         attrs: ["人爱世人", "纯洁无暇的少女+花与飞鸟相伴+为人类牺牲", "这是因你而在的故事"]
       },
       {
         name: "奥托",
-        image: "assets/Break3/Otto.jpg",
+        image: "Break3/Otto.jpg",
         attrs: ["纯爱+疯狂+自私+智慧", "主宰天命+改写虚数之树", "墓志铭太短，此生太长"]
       }
     ]
@@ -959,58 +959,58 @@ const RANGES = [
   {
     name: "火影忍者",
     title: "火影忍者",
-    background: "assets/A_setting/image/efback.jpg",                              
+    background: "A_setting/image/efback.jpg",                              
     labels: ["外貌特征", "职位（所属）", "忍术特点"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "春野樱",
-        image: "assets/fire/Sakura_Haruno.png",
+        image: "fire/Sakura_Haruno.png",
         attrs: ["粉毛", "木叶", "怪力+治愈"]
       },
       {
         name: "宇智波斑",
-        image: "assets/fire/Madara_Uchiha.jpg",
+        image: "fire/Madara_Uchiha.jpg",
         attrs: ["黑色刺头", "族长", "开高达"]
       },
       {
         name: "波风水门",
-        image: "assets/fire/Minato_Namikaze.jpg",
+        image: "fire/Minato_Namikaze.jpg",
         attrs: ["黄毛", "火影", "速度快"]
       },
       {
         name: "迈特戴",
-        image: "assets/fire/Might_Duy.jpg",
+        image: "fire/Might_Duy.jpg",
         attrs: ["浓眉", "木叶下忍", "不会忍术"]
       },
       {
         name: "旗木卡卡西",
-        image: "assets/fire/Kakashi_Hatake.jpg",
+        image: "fire/Kakashi_Hatake.jpg",
         attrs: ["蒙面", "火影", "复制流"]
       },
       {
         name: "天道佩恩",
-        image: "assets/fire/Tendo_Pain.jpg",
+        image: "fire/Tendo_Pain.jpg",
         attrs: ["特殊的眼睛", "晓组织", "引力和斥力"]
       },
       {
         name: "大蛇丸",
-        image: "assets/fire/Orochimaru.jpg",
+        image: "fire/Orochimaru.jpg",
         attrs: ["长舌头", "木叶叛忍", "各种禁术"]
       },
       {
         name: "千手柱间",
-        image: "assets/fire/Hashirama_Senju.jpg",
+        image: "fire/Hashirama_Senju.jpg",
         attrs: ["黑长直", "火影", "经常被他人移植"]
       },
       {
         name: "宇智波止水",
-        image: "assets/fire/Shisui_Uchiha.jpg",
+        image: "fire/Shisui_Uchiha.jpg",
         attrs: ["刺头", "宇智波", "幻术"]
       },
       {
         name: "干柿鬼鲛",
-        image: "assets/fire/Kisame_Hoshigaki.jpg",
+        image: "fire/Kisame_Hoshigaki.jpg",
         attrs: ["身子很高", "叛忍", "'大坝谁修哈'"]
       }
     ]
@@ -1018,65 +1018,58 @@ const RANGES = [
   {
     name: "明日方舟",
     title: "明日方舟",
-    background: "assets/A_setting/image/efback.jpg",                              
+    background: "A_setting/image/efback.jpg",                              
     labels: ["职业", "外貌特征", "性格"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "黍",
-        image: "assets/ark/Shu.jpg",
+        image: "ark/Shu.jpg",
         attrs: ["重装", "凉席平板+龙", "妈妈..."]
       },
       {
         name: "斯卡蒂",
-        image: "assets/ark/Skadi.jpg",
+        image: "ark/Skadi.jpg",
         attrs: ["近卫", "巨剑+白毛红瞳", "呆呆的+力气大"]
       },
       {
         name: "凯尔希",
-        image: "assets/ark/Kaltsit.jpg",
+        image: "ark/Kaltsit.jpg",
         attrs: ["医疗", "白绿猫猫", "冷淡+老女人"]
       },
       {
         name: "Mon3tr",
-        image: "assets/ark/Mon3tr.jpg",
+        image: "ark/Mon3tr.jpg",
         attrs: ["医疗", "黑绿猫猫", "哈气小猫"]
       },
       {
         name: "阿米娅",
-        image: "assets/ark/Amiya.jpg",
+        image: "ark/Amiya.jpg",
         attrs: ["术士+近卫+医疗", "棕色兔兔", "温柔坚定+重力"]
       },
       {
         name: "普瑞赛斯",
-        image: "assets/ark/Priestess.jpg",
+        image: "ark/Priestess.jpg",
         attrs: ["？？？", "黑长直+菱形瞳孔", "你忘^@了我&吗--#!"]
       },
-      /* 玛恩纳：assets/ark/Mlynar.jpg 文件缺失，先注释掉；
-         把图放进 assets/ark/ 后取消注释即可 */
-      /* {
-        name: "玛恩纳",
-        image: "assets/ark/Mlynar.jpg",
-        attrs: ["近卫", "金色的马、佩剑", "一副命苦的模样"]
-      }, */
       {
         name: "酒神",
-        image: "assets/ark/Tragodia.jpg",
+        image: "ark/Tragodia.jpg",
         attrs: ["辅助", "黑色披肩+酒杯", "冷淡+冷静"]
       },
       {
         name: "蕾缪安",
-        image: "assets/ark/Lemuen.jpg",
+        image: "ark/Lemuen.jpg",
         attrs: ["狙击", "粉毛+轮椅+天使", "文静温和+疼爱小乐+腹黑"]
       },
       {
         name: "史尔特尔",
-        image: "assets/ark/Surtr.jpg",
+        image: "ark/Surtr.jpg",
         attrs: ["身子很高", "火焰巨人+巨剑", "嫌弃脸+高傲"]
       },
       {
         name: "琴柳",
-        image: "assets/ark/Saileach.jpg",
+        image: "ark/Saileach.jpg",
         attrs: ["先锋", "双麻花辫+超长黄发+有角+玉zu", "温柔亲和+阳光正直"]
       }
     ]
@@ -1084,58 +1077,58 @@ const RANGES = [
   {
     name: "lovelive",
     title: "lovelive",
-    background: "assets/A_setting/image/efback.jpg",
+    background: "A_setting/image/efback.jpg",
     labels: ["发色", "特长", "性格/特点"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "园田海未",
-        image: "assets/lovelive/Sonoda_Umi.jpg",
+        image: "lovelive/Sonoda_Umi.jpg",
         attrs: ["蓝色", "剑道+弓道", "大和抚子"]
       },
       {
         name: "南小鸟",
-        image: "assets/lovelive/Minami_Kotori.jpg",
+        image: "lovelive/Minami_Kotori.jpg",
         attrs: ["褐色", "服装设计", "温柔+文静+天然呆"]
       },
       {
         name: "渡边曜",
-        image: "assets/lovelive/Watanabe_You.jpg",
+        image: "lovelive/Watanabe_You.jpg",
         attrs: ["银色", "跳水", "元气+水手服"]
       },
       {
         name: "小原鞠莉",
-        image: "assets/lovelive/Ohara_Mari.jpg",
+        image: "lovelive/Ohara_Mari.jpg",
         attrs: ["金色", "富有", "shiny"]
       },
       {
         name: "优木雪菜",
-        image: "assets/lovelive/Yazawa_Nico.jpg",
+        image: "lovelive/Yazawa_Nico.jpg",
         attrs: ["蓝黑", "做黑暗料理", "元气+宅女+反差萌"]
       },
       {
         name: "朝香果林",
-        image: "assets/lovelive/Asaka_Karin.jpg",
+        image: "lovelive/Asaka_Karin.jpg",
         attrs: ["深蓝", "做模特", "成熟+爱迷路"]
       },
       {
         name: "唐可可",
-        image: "assets/lovelive/Tang_Keke.jpg",
+        image: "lovelive/Tang_Keke.jpg",
         attrs: ["浅灰褐+浅粉紫", "学习", "偶像宅+体力杂鱼"]
       },
       {
         name: "若菜四季",
-        image: "assets/lovelive/Wakana_Shiki.jpg",
+        image: "lovelive/Wakana_Shiki.jpg",
         attrs: ["蓝色", "理科", "三无少女"]
       },
       {
         name: "乙宗梢",
-        image: "assets/lovelive/Otomune_Kozue.jpg",
+        image: "lovelive/Otomune_Kozue.jpg",
         attrs: ["紫色", "古典芭蕾", "治愈系+腹黑"]
       },
       {
         name: "安养寺姬芽",
-        image: "assets/lovelive/Anyoji_Hime.jpg",
+        image: "lovelive/Anyoji_Hime.jpg",
         attrs: ["粉色", "游戏+直播", "宅女+瓦学妹"]
       }
     ]
@@ -1143,63 +1136,63 @@ const RANGES = [
   {
     name: "终末地",
     title: "终末地",
-    background: "assets/A_setting/image/efback.jpg",
+    background: "A_setting/image/efback.jpg",
     labels: ["职业", "外貌特征", "性格/特点"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "祀",
-        image: "assets/endfield/Si.jpg",
+        image: "endfield/Si.jpg",
         attrs: ["辅助", "黑色长直发+红角+白绿裙装+寒冰晶簇", "神秘+虔诚+清冷"]
       },
       {
         name: "提弗洛斯",
-        image: "assets/endfield/Typhoeus.jpg",
+        image: "endfield/Typhoeus.jpg",
         attrs: ["突击", "紫色卷发+黑色弯角+猫耳耳机+深色劲装", "元气俏皮+好胜+小恶魔"]
       },
       {
         name: "梨诺",
-        image: "assets/endfield/Liino.jpg",
+        image: "endfield/Liino.jpg",
         attrs: ["辅助", "金发紫粉挑染+蓝色偶像裙+机械义腿", "活力偶像+乐观+爱表现"]
       },
       {
         name: "诀",
-        image: "assets/endfield/Arcane.jpg",
+        image: "endfield/Arcane.jpg",
         attrs: ["术师", "银白短发+黑色短裙+青色披风+双手枪刃", "冷静+利落+寡言"]
       },
       {
         name: "庄方宜",
-        image: "assets/endfield/Zhuang_Fangyi.jpg",
+        image: "endfield/Zhuang_Fangyi.jpg",
         attrs: ["突击", "浅绿长发+白色戏装裙+绿色长柄兵刃+龙影", "端庄大气+戏曲名伶+飒爽"]
       },
       {
         name: "洛茜",
-        image: "assets/endfield/Rossi.jpg",
+        image: "endfield/Rossi.jpg",
         attrs: ["近卫", "金色长发+红色兜帽+白色连衣裙+大剑+狐尾", "热血+野性+直率"]
       },
       {
         name: "洁尔佩塔",
-        image: "assets/endfield/Gilberta.jpg",
+        image: "endfield/Gilberta.jpg",
         attrs: ["辅助", "棕色双马尾+兽耳+红色大衣+长柄武器", "精明能干+爽快利落+可靠"]
       },
       {
         name: "莱万汀",
-        image: "assets/endfield/Laevatain.jpg",
+        image: "endfield/Laevatain.jpg",
         attrs: ["突击", "红发红瞳+黑色战裙+巨剑火焰", "热烈张扬+锋芒毕露+果敢"]
       },
       {
         name: "艾尔黛拉",
-        image: "assets/endfield/Ardelia.jpg",
+        image: "endfield/Ardelia.jpg",
         attrs: ["辅助", "棕发侧马尾+紫白连衣裙+粉色毛绒浮游体", "温柔治愈+甜美亲和+体贴"]
       },
       {
         name: "佩丽卡",
-        image: "assets/endfield/Perlica.jpg",
+        image: "endfield/Perlica.jpg",
         attrs: ["术师", "银白长发+白裙+术师装置", "冷静沉着+忠诚可靠+理性"]
       },
       {
         name: "陈千语",
-        image: "assets/endfield/Chen_Qianyu.jpg",
+        image: "endfield/Chen_Qianyu.jpg",
         attrs: ["近卫", "黑发+龙角+蓝外套白裙+佩剑", "活泼爽朗+武学世家+自信"]
       }
     ]
@@ -1207,58 +1200,58 @@ const RANGES = [
   {
     name: "崩坏星穹铁道",
     title: "崩坏星穹铁道",
-    background: "assets/A_setting/image/efback.jpg",
+    background: "A_setting/image/efback.jpg",
     labels: ["命途", "属性", "特征"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "镜流",
-        image: "assets/star_rail/Jingliu.jpg",
+        image: "star_rail/Jingliu.jpg",
         attrs: ["毁灭", "冰", "白蓝长发+冷淡+剑术高超"]
       },
       {
         name: "海瑟音",
-        image: "assets/star_rail/Hysilens.jpg",
+        image: "star_rail/Hysilens.jpg",
         attrs: ["虚无", "物理", "黑长发+神秘+歌声魅惑"]
       },
       {
         name: "刻律德拉",
-        image: "assets/star_rail/Cerydra.jpg",
+        image: "star_rail/Cerydra.jpg",
         attrs: ["同谐", "风", "浅蓝长发+威严+女王气场"]
       },
       {
         name: "遐蝶",
-        image: "assets/star_rail/Castorice.jpg",
+        image: "star_rail/Castorice.jpg",
         attrs: ["记忆", "量子", "银紫长发+温柔+与死龙共生"]
       },
       {
         name: "流萤",
-        image: "assets/star_rail/Firefly.jpg",
+        image: "star_rail/Firefly.jpg",
         attrs: ["毁灭", "火", "银灰长发+坚韧+机甲少女"]
       },
       {
         name: "卡芙卡",
-        image: "assets/star_rail/Kafka.jpg",
+        image: "star_rail/Kafka.jpg",
         attrs: ["虚无", "雷", "紫红长发+优雅+神秘莫测"]
       },
       {
         name: "知更鸟",
-        image: "assets/star_rail/Robin.jpg",
+        image: "star_rail/Robin.jpg",
         attrs: ["同谐", "物理", "浅蓝长发+温柔+天籁歌喉"]
       },
       {
         name: "花火",
-        image: "assets/star_rail/Sparkle.jpg",
+        image: "star_rail/Sparkle.jpg",
         attrs: ["同谐", "量子", "黑发双马尾+戏谑+善变"]
       },
       {
         name: "爻光",
-        image: "assets/star_rail/Yaoguang.jpg",
+        image: "star_rail/Yaoguang.jpg",
         attrs: ["欢愉", "物理", "银白长发+活泼+孔雀舞者"]
       },
       {
         name: "那刻夏",
-        image: "assets/star_rail/Anaxa.jpg",
+        image: "star_rail/Anaxa.jpg",
         attrs: ["智识", "风", "银白长发+毒舌+学者"]
       }
     ]
@@ -1266,73 +1259,73 @@ const RANGES = [
   {
     name: "邦多利",
     title: "邦多利",
-    background: "assets/A_setting/image/efback.jpg",
+    background: "A_setting/image/efback.jpg",
     labels: ["所属乐队", "乐器", "特征"],
     tip: "素材来源于网络，侵删",
     characters: [
       {
         name: "千石由乃",
-        image: "assets/bandori/Sengoku_Yuno.jpg",
+        image: "bandori/Sengoku_Yuno.jpg",
         attrs: ["夢限大MewType", "DJ+Mp.", "粉黑双色发+冷酷+宅"]
       },
       {
         name: "八幡海铃",
-        image: "assets/bandori/Yahata_Umiri.jpg",
+        image: "bandori/Yahata_Umiri.jpg",
         attrs: ["Ave Mujica", "贝斯", "黑发+冷静+可靠"]
       },
       {
         name: "广町七深",
-        image: "assets/bandori/Hiromachi_Nanami.jpg",
+        image: "bandori/Hiromachi_Nanami.jpg",
         attrs: ["Morfonica", "贝斯", "粉发+温柔+我行我素"]
       },
       {
         name: "朝日六花",
-        image: "assets/bandori/Asahi_Rokka.jpg",
+        image: "bandori/Asahi_Rokka.jpg",
         attrs: ["RAISE A SUILEN", "吉他", "蓝灰长发+努力+认真"]
       },
       {
         name: "冰川日菜",
-        image: "assets/bandori/Hikawa_Hina.jpg",
+        image: "bandori/Hikawa_Hina.jpg",
         attrs: ["Pastel*Palettes", "吉他", "薄荷绿发+天才+直率"]
       },
       {
         name: "要乐奈",
-        image: "assets/bandori/Kaname_Raana.jpg",
+        image: "bandori/Kaname_Raana.jpg",
         attrs: ["MyGO!!!!!", "吉他", "白发异色瞳+自由奔放+猫系"]
       },
       {
         name: "青叶摩卡",
-        image: "assets/bandori/Aoba_Moca.jpg",
+        image: "bandori/Aoba_Moca.jpg",
         attrs: ["Afterglow", "吉他", "浅灰绿发+慵懒+毒舌"]
       },
       {
         name: "丰川祥子",
-        image: "assets/bandori/Toyokawa_Sakiko.jpg",
+        image: "bandori/Toyokawa_Sakiko.jpg",
         attrs: ["Ave Mujica", "键盘", "蓝紫长发+高傲+完美主义"]
       },
       {
         name: "若叶睦",
-        image: "assets/bandori/Wakaba_Mutsumi.jpg",
+        image: "bandori/Wakaba_Mutsumi.jpg",
         attrs: ["Ave Mujica", "吉他", "浅绿长发+沉默+寡言"]
       },
       {
         name: "长崎素世",
-        image: "assets/bandori/Nagasaki_Soyo.jpg",
+        image: "bandori/Nagasaki_Soyo.jpg",
         attrs: ["MyGO!!!!!", "贝斯", "棕色长发+温柔+表里不一"]
       },
       {
         name: "凑友希那",
-        image: "assets/bandori/Minato_Yukina.jpg",
+        image: "bandori/Minato_Yukina.jpg",
         attrs: ["Roselia", "主唱", "银蓝长发+清冷+意志坚定"]
       },
       {
         name: "弦卷心",
-        image: "assets/bandori/Tsurumaki_Kokoro.jpg",
+        image: "bandori/Tsurumaki_Kokoro.jpg",
         attrs: ["Hello, Happy World!", "主唱", "浅粉发+天真烂漫+无忧无虑"]
       },
       {
         name: "市谷有咲",
-        image: "assets/bandori/Ichigaya_Arisa.jpg",
+        image: "bandori/Ichigaya_Arisa.jpg",
         attrs: ["Poppin'Party", "键盘", "金发双卷马尾+毒舌+宅"]
       }
     ]
@@ -1399,8 +1392,8 @@ function sfxStop() { playTone(320, 120, 0.18, 0.22); }   // 某个滚轮停稳�
    - long/  循环 BGM：点“开始”时随机挑一首循环播，抽奖结束/返回时停
    随机但不连续重复（记住上一次的下标，抽到同一首就顺延下一首）
    ================================================================ */
-const SHORT_DIR = "assets/A_setting/music/short/";
-const LONG_DIR = "assets/A_setting/music/long/";
+const SHORT_DIR = "A_setting/music/short/";
+const LONG_DIR = "A_setting/music/long/";
 // 想固定成某一首或调整曲库，直接改这两个数组即可
 const SHORT_LIST = [
   "Bon_voyage", "Ciallo", "Genshin", "fish",
