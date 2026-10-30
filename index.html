@@ -340,7 +340,7 @@
     box-shadow: 0 0 14px rgba(245, 158, 11, 0.65);
   }
   /* 滚动的文字格子：宽度占满窗口（长词可自动换行），JS 每帧改 translateY。
-     初始 opacity:0（不可见），点开始后才淡入显示 */
+     初始 opacity:0（不可见），点开始后才显示 */
   .reel-cell {
     position: absolute;
     left: 0;
@@ -358,8 +358,7 @@
     padding: 0 10px;
     overflow: hidden;                                  /* 超过两行就裁掉，不影响相邻格 */
     color: #c9b48c;                                   /* 未抽中的词：暖灰 */
-    opacity: 0;                                       /* 初始隐藏，避免堆叠 */
-    transition: opacity 0.3s;
+    opacity: 0;                                       /* 初始隐藏，避免堆叠；显示时直接亮，不做淡入 */
   }
   .reel-cell.on {
     color: #4a3a1e;                                   /* 正中央（抽中）的词：深棕加粗醒目 */
@@ -476,8 +475,7 @@
     box-shadow: 0 4px 14px rgba(196, 138, 40, 0.3);
     display: none;                                    /* 没图时隐藏 */
     margin: 0 auto;
-    opacity: 1;
-    transition: opacity 0.2s ease;                    /* 图没预热到时，到货后淡入 */
+    opacity: 1;                                       /* 到货后直接显示，不做淡入 */
   }
   #popImg.pending { opacity: 0; }
   #popPlaceholder {
@@ -1404,40 +1402,99 @@ const SHORT_LIST = [
 ];
 const LONG_LIST = ["happy", "manbo", "pipaqu", "sad", "shake", "windGenshin"];
 
+/* ---- 音频字节预取（解决“玩起来了音乐还没加载出来”） ----
+   手机浏览器对 <audio preload="auto"> 基本不听：没有用户手势就不下载，
+   等点“开始”才发请求，于是前几秒是静音。这里用 fetch 把 mp3 先取成 Blob
+   缓存在内存里，播放时用 blob URL —— 不走网络、不用等缓冲，点了就响。
+   （file:// 直接打开时 fetch 受限，会静默退回原来的相对路径，功能不受影响） */
+const _audioBlob = new Map();     // path -> blob URL（就绪后才有）
+const _audioFetching = new Set();
+const _audioQueue = [];           // 待抓取的路径队列
+let _audioActive = 0;             // 当前并发数（最多 2 个，别和角色图抢带宽）
+function isShortPath(path) { return path.indexOf(SHORT_DIR) === 0; }
+function srcFor(path) { return _audioBlob.get(path) || path; }
+function poolFor(path) { return isShortPath(path) ? _shortPool : _longPool; }
+function makeAudio(path) {
+  const a = new Audio(srcFor(path));
+  a.preload = "auto";
+  a.loop = !isShortPath(path);        // long 循环，short 只播一次
+  a._src = srcFor(path);
+  poolFor(path).set(path, a);
+  return a;
+}
+// 元素若还在用原路径、而字节已经下好，就趁它没在播时切到本地 blob
+function ensureSrc(a, path) {
+  const want = srcFor(path);
+  if (a._src !== want && a.paused) {
+    a._src = want;
+    a.src = want;
+    a.load();
+  }
+}
+function cacheAudio(path) {
+  // 本地 file:// 打开时 fetch 会被浏览器拦，直接跳过（桌面本地读取本来就快）
+  if (location.protocol === "file:") return;
+  if (typeof fetch !== "function") return;
+  if (_audioBlob.has(path) || _audioFetching.has(path)) return;
+  if (_audioQueue.indexOf(path) >= 0) return;
+  _audioQueue.push(path);
+  pumpAudioQueue();
+}
+function pumpAudioQueue() {
+  while (_audioActive < 2 && _audioQueue.length) {
+    const path = _audioQueue.shift();
+    if (_audioBlob.has(path) || _audioFetching.has(path)) continue;
+    _audioFetching.add(path);
+    _audioActive++;
+    const done = () => { _audioFetching.delete(path); _audioActive--; pumpAudioQueue(); };
+    fetch(path, { cache: "force-cache" })
+      .then(r => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+      .then(b => {
+        _audioBlob.set(path, URL.createObjectURL(b));
+        const a = poolFor(path).get(path);
+        if (!a) makeAudio(path).load();          // 提前建元素并解析，play 时直接出声
+        else if (a.paused) { a._src = _audioBlob.get(path); a.src = a._src; a.load(); }
+        done();
+      }, () => done());                          // 取不到就退回原路径，不影响播放
+  }
+}
+
 const _shortPool = new Map();          // 路径 -> Audio，复用同一元素避免重复下载
 function getShortAudio(name) {
   const path = SHORT_DIR + name + ".mp3";
-  let a = _shortPool.get(path);
-  if (!a) {
-    a = new Audio(path);
-    a.preload = "auto";
-    a.loop = false;                    // short 只播一次
-    _shortPool.set(path, a);
-  }
+  const a = _shortPool.get(path) || makeAudio(path);
+  ensureSrc(a, path);
   return a;
 }
-let lastShortIdx = -1;
-// 播放一首 short：进入 IP、点“谜底”都走这里
+let lastShortName = "";
+// 挑一首 short：优先挑已经缓存好的（点了就响）、避开上一首、
+// 还要避开正在播放的那几首——保证之前那首不会被打断
+function pickShortName() {
+  const ready = SHORT_LIST.filter(n => _audioBlob.has(SHORT_DIR + n + ".mp3"));
+  const list = ready.length >= 2 ? ready : SHORT_LIST;
+  const playing = n => {
+    const a = _shortPool.get(SHORT_DIR + n + ".mp3");
+    return !!a && !a.paused && !a.ended;
+  };
+  let cand = list.filter(n => n !== lastShortName && !playing(n));
+  if (!cand.length) cand = list.filter(n => !playing(n));
+  if (!cand.length) cand = list;
+  return cand[Math.floor(Math.random() * cand.length)];
+}
+// 播放一首 short：进入 IP、点“谜底”都走这里。
+// 不再打断上一首：上一首（比如进 IP 的那段）让它自然播完，两段允许短暂重叠
 function playShort() {
   if (!SHORT_LIST.length) return;
-  let i = Math.floor(Math.random() * SHORT_LIST.length);
-  if (SHORT_LIST.length > 1 && i === lastShortIdx) {
-    i = (i + 1) % SHORT_LIST.length;   // 和上次同一首时顺延，避免连续重复
-  }
-  lastShortIdx = i;
-  const a = getShortAudio(SHORT_LIST[i]);
-  // 上一次的 short 还没放完就掐掉，避免两个短音效叠在一起
-  _shortPool.forEach(other => {
-    if (other !== a && !other.paused) {
-      other.pause();
-      other.currentTime = 0;
-    }
-  });
+  const name = pickShortName();
+  lastShortName = name;
+  const a = getShortAudio(name);
   a.muted = false;
+  a.volume = 1;
   a.currentTime = 0;
   const p = a.play();
   if (p && p.catch) p.catch(() => {});   // 播放失败静默忽略
 }
+// 停掉全部短音效（目前没有地方调用：按需求短音效一律放完，不再中途掐断）
 function stopShort() {
   _shortPool.forEach(a => {
     if (!a.paused) {
@@ -1449,28 +1506,23 @@ function stopShort() {
 /* ---- long：循环 BGM ---- */
 const _longPool = new Map();
 let longSfx = null;                    // 当前正在循环的那一首
-let lastLongIdx = -1;
+let lastLongName = "";
 function getLongAudio(name) {
   const path = LONG_DIR + name + ".mp3";
-  let a = _longPool.get(path);
-  if (!a) {
-    a = new Audio(path);
-    a.preload = "auto";
-    a.loop = true;                     // 关键：循环播放，直到抽奖结束
-    _longPool.set(path, a);
-  }
+  const a = _longPool.get(path) || makeAudio(path);
+  ensureSrc(a, path);
   return a;
 }
 // 点“开始”时调用（在点击手势里，手机浏览器允许立即播放）
 function playLong() {
   if (!LONG_LIST.length) return;
-  stopShort();                         // 进入音效没放完就掐掉，别和 BGM 打架
-  let i = Math.floor(Math.random() * LONG_LIST.length);
-  if (LONG_LIST.length > 1 && i === lastLongIdx) {
-    i = (i + 1) % LONG_LIST.length;
-  }
-  lastLongIdx = i;
-  const a = getLongAudio(LONG_LIST[i]);
+  // 注意：这里不再 stopShort()，让进入 IP 的那段短音效自己播完，不中途掐断
+  const ready = LONG_LIST.filter(n => _audioBlob.has(LONG_DIR + n + ".mp3"));
+  const list = ready.length ? ready : LONG_LIST;      // 已缓存好的优先，点了就有声
+  const cand = list.length > 1 ? list.filter(n => n !== lastLongName) : list;
+  const name = cand[Math.floor(Math.random() * cand.length)] || list[0];
+  lastLongName = name;
+  const a = getLongAudio(name);
   if (longSfx && longSfx !== a) {      // 换曲时先停掉上一首
     longSfx.pause();
     longSfx.currentTime = 0;
@@ -1478,6 +1530,8 @@ function playLong() {
   longSfx = a;
   a.muted = false;
   a.currentTime = 0;
+  // 不做淡入：直接从全音量起播（点了就要立刻听到，不要慢慢变大）
+  a.volume = 1;
   const p = a.play();
   if (p && p.catch) p.catch(() => {});
 }
@@ -1488,9 +1542,10 @@ function stopLong() {
   longSfx.currentTime = 0;
   longSfx = null;
 }
-// 预取：short 开机就绪；long 体积较大，等玩家点进某个 IP 时再悄悄缓冲
-function prefetchShort() { SHORT_LIST.forEach(n => getShortAudio(n)); }
-function prefetchLong() { LONG_LIST.forEach(n => getLongAudio(n)); }
+// 预取：short 开机就抓字节；long 体积稍大，等玩家点进某个 IP 时再悄悄抓
+// （fetch 成 blob 后，播放不再受“没手势不下载”的限制，点了就有声）
+function prefetchShort() { SHORT_LIST.forEach(n => cacheAudio(SHORT_DIR + n + ".mp3")); }
+function prefetchLong() { LONG_LIST.forEach(n => cacheAudio(LONG_DIR + n + ".mp3")); }
 /* ================================================================
    四、预加载（加快弹窗图片显示速度的核心）
    ----------------------------------------------------------------
@@ -1772,7 +1827,7 @@ function startSpin() {
     // 取消该滚轮的“停稳发光”样式
     $("reelRows").children[i].classList.remove("done");
   }
-  // 3）移除“?”占位符，让格子淡入显示，准备滚动
+  // 3）移除“?”占位符，让格子直接显示，准备滚动
   for (let i = 0; i < 3; i++) {
     const win = getWindowEl(i);
     win.querySelectorAll(".reel-placeholder").forEach(el => el.remove());
@@ -1837,7 +1892,7 @@ function openAnswer() {
   const img = $("popImg");
   const placeholder = $("popPlaceholder");
   if (answer.image) {
-    // 有图片：已预热过的直接显示；万一还没下完，先透明着等它到货再淡入，
+    // 有图片：已预热过的直接显示；万一还没下完，先透明着等它到货再显示，
     // 避免弹窗里先出现一片空白/半张图
     const url = answer.image;
     img.classList.toggle("pending", !_imgReady.has(url));
@@ -1862,7 +1917,7 @@ function closePopup() {
 $("btnStart").addEventListener("click", startSpin);
 $("btnAnswer").addEventListener("click", openAnswer);
 $("btnBack").addEventListener("click", goHome);
-// 谜底图到货即淡入；加载失败则退回“暂无图片”占位，不显示破图图标
+// 谜底图到货即显示；加载失败则退回“暂无图片”占位，不显示破图图标
 $("popImg").addEventListener("load", () => $("popImg").classList.remove("pending"));
 $("popImg").addEventListener("error", () => {
   const img = $("popImg");
