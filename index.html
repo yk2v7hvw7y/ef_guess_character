@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <!-- 首屏关键资源优先级预加载：浏览器比 JS 更早开始下载 -->
-<link rel="preload" as="image" href="A_setting/image/push_button_start.png">
+<link rel="preload" as="image" href="A_setting/image/efback.jpg" fetchpriority="high">
+<link rel="preload" as="image" href="A_setting/image/push_button_start.png" fetchpriority="high">
 <link rel="preload" as="image" href="A_setting/image/push_button_answer.png">
 <link rel="preload" as="image" href="A_setting/image/push_button_back.png">
-<link rel="preload" as="image" href="A_setting/image/efback.jpg">
 <title>翼遥动漫社-角色猜猜乐</title>
 <style>
   /* ============================================================
@@ -476,7 +476,10 @@
     box-shadow: 0 4px 14px rgba(196, 138, 40, 0.3);
     display: none;                                    /* 没图时隐藏 */
     margin: 0 auto;
+    opacity: 1;
+    transition: opacity 0.2s ease;                    /* 图没预热到时，到货后淡入 */
   }
+  #popImg.pending { opacity: 0; }
   #popPlaceholder {
     height: 320px;                                    /* 旧版 160px 的 2 倍 */
     display: none;                                    /* 没图时显示 */
@@ -1491,20 +1494,86 @@ function prefetchLong() { LONG_LIST.forEach(n => getLongAudio(n)); }
 /* ================================================================
    四、预加载（加快弹窗图片显示速度的核心）
    ----------------------------------------------------------------
-   浏览器有内存缓存：同 URL 的图只要加载过一次，再用 new Image() 或
-   <img src> 引用时直接命中缓存，瞬间显示。所以策略是：
-   - 页面启动时：预加载首页背景图（已由 <link preload> 高优先级）
-   - enterRange 时：预加载当前 IP 所有角色图（并发，每个 IP 就 10-15 张）
-   点谜底时 img.src = xxx 直接命中缓存，不再等下载。
+   做两件事：
+   1) 下载：new Image() 触发请求，浏览器存进 HTTP 缓存，之后 <img src>
+      同 URL 直接命中缓存，不再走网络。
+   2) 预解码：抽奖一结束就知道答案是谁了，这时先把答案图解码好（只保这一张，
+      解码位图占几 MB，不会像全站缓存那样撑爆手机内存）。
+      光有缓存时打开弹窗仍要现场解码、会闪一下，提前解好才是真的秒开。
+
+   触发时机：
+   - 页面启动：<link rel=preload> 先拉首屏按钮和背景（浏览器优先级最高）
+   - 进入某个 IP：立即预加载该 IP 全部角色图（玩家接下来一定会用到）
+   - 首屏空闲后：按首页卡片顺序把全站角色图分批悄悄下载好，
+     这样点进任意 IP 都是热的（尊重“省流量”设置，开启时不预热）
+   - 抽奖结束：单独对答案图做预解码
    ================================================================ */
-const _preloaded = new Set();   // 记录已预加载的 URL，避免重复请求
-function preloadImages(urls) {
-  urls.forEach(u => {
-    if (!u || _preloaded.has(u)) return;
-    _preloaded.add(u);
+const _imgCache = new Map();    // url -> Promise<boolean>，同 URL 只请求一次
+const _imgReady = new Set();    // 已经下载完成的 url
+let _decodedImg = null;         // 只保活“当前答案图”的解码结果，避免内存爆掉
+function preloadImage(url, opt) {
+  if (!url) return Promise.resolve(false);
+  const hit = _imgCache.get(url);
+  if (hit) {
+    // 已经下过：如果这次要求解码，就补一次（同一张只解一次）
+    if (opt && opt.decode) hit.then(() => decodeOnly(url));
+    return hit;
+  }
+  const p = new Promise(resolve => {
     const img = new Image();
-    img.src = u;                 // 触发下载，浏览器自动存进内存缓存
+    img.decoding = "async";
+    img.onload = () => {
+      _imgReady.add(url);
+      resolve(true);                       // 只返回成功与否，不保活这个 Image
+      if (opt && opt.decode && img.decode) {
+        // 需要预解码的图才保活；解码失败也忽略，届时照常显示
+        _decodedSet.add(url);
+        img.decode().then(() => { _decodedImg = img; }, () => {});
+      }
+    };
+    img.onerror = () => resolve(false);
+    img.src = url;               // 触发下载
   });
+  _imgCache.set(url, p);
+  return p;
+}
+// 对已经下载好的图补一次解码（不重复走网络；同一张只解一次）
+const _decodedSet = new Set();
+function decodeOnly(url) {
+  if (!url || _decodedSet.has(url)) return;
+  _decodedSet.add(url);
+  const img = new Image();
+  img.src = url;
+  if (img.decode) img.decode().then(() => { _decodedImg = img; }, () => {});
+}
+function preloadImages(urls) { urls.forEach(u => preloadImage(u)); }
+
+// 全站角色图预热：等首屏 load 完、浏览器空闲时，按首页卡片顺序分批下载
+function warmUpAllImages() {
+  // 用户开了“省流量”就不主动下大图，只保留进入 IP 时的按需加载
+  if (navigator.connection && navigator.connection.saveData) return;
+  const queue = [];
+  const seen = new Set();
+  RANGES.forEach(r => (r.characters || []).forEach(c => {
+    if (c.image && !seen.has(c.image)) { seen.add(c.image); queue.push(c.image); }
+  }));
+  if (!queue.length) return;
+  let i = 0;
+  const BATCH = 3;                 // 一次 3 张，别把手机带宽抢光
+  const step = () => {
+    if (i >= queue.length) return;
+    const batch = queue.slice(i, i + BATCH);
+    i += BATCH;
+    Promise.all(batch.map(u => preloadImage(u))).then(() => {
+      if (i < queue.length) setTimeout(step, 150);   // 批间留口气，保证交互优先
+    });
+  };
+  const kick = () => {
+    if ("requestIdleCallback" in window) requestIdleCallback(step, { timeout: 3000 });
+    else setTimeout(step, 1000);
+  };
+  if (document.readyState === "complete") setTimeout(kick, 500);
+  else window.addEventListener("load", () => setTimeout(kick, 500));
 }
 /* ================================================================
    五、全局状态变量
@@ -1679,6 +1748,9 @@ function startSpin() {
   // 1）先定谜底
   const pool = currentRange.characters;
   answer = pool[Math.floor(Math.random() * pool.length)];
+  // 答案一确定就立刻把这张图下载+解码好（滚轮要转好几秒，完全来得及），
+  // 点“谜底”时就不用再等网络和解码了
+  if (answer.image) preloadImage(answer.image, { decode: true });
   // 2）算出每个滚轮要停在哪个下标，并计算滚动总距离
   for (let i = 0; i < 3; i++) {
     let idx = reelItems[i].indexOf(answer.attrs[i]);
@@ -1765,10 +1837,14 @@ function openAnswer() {
   const img = $("popImg");
   const placeholder = $("popPlaceholder");
   if (answer.image) {
-    // 有图片：显示图片
-    img.src = answer.image;
+    // 有图片：已预热过的直接显示；万一还没下完，先透明着等它到货再淡入，
+    // 避免弹窗里先出现一片空白/半张图
+    const url = answer.image;
+    img.classList.toggle("pending", !_imgReady.has(url));
+    if (img.getAttribute("src") !== url) img.src = url;
     img.style.display = "block";
     placeholder.style.display = "none";
+    if (!_imgReady.has(url)) preloadImage(url);
   } else {
     // 没图片：隐藏图片，显示占位提示
     img.removeAttribute("src");
@@ -1786,6 +1862,15 @@ function closePopup() {
 $("btnStart").addEventListener("click", startSpin);
 $("btnAnswer").addEventListener("click", openAnswer);
 $("btnBack").addEventListener("click", goHome);
+// 谜底图到货即淡入；加载失败则退回“暂无图片”占位，不显示破图图标
+$("popImg").addEventListener("load", () => $("popImg").classList.remove("pending"));
+$("popImg").addEventListener("error", () => {
+  const img = $("popImg");
+  img.classList.remove("pending");
+  img.removeAttribute("src");
+  img.style.display = "none";
+  $("popPlaceholder").style.display = "flex";
+});
 // 点弹窗外的暗色空白处关闭弹窗。
 // 统一用 click（按下+抬起都在遮罩上），手机 QQ/微信里最稳定。
 $("overlay").addEventListener("click", e => {
@@ -1958,6 +2043,7 @@ window.addEventListener("orientationchange", () => {
 const allBg = [HOME_BACKGROUND, ...RANGES.map(r => r.background)].filter(Boolean);
 preloadImages(allBg);
 prefetchShort();                          // short 体积小，开机就缓冲好，点 IP 秒响
+warmUpAllImages();                        // 首屏空闲后后台预热全站角色图（省流量模式下自动跳过）
 renderHome();
 // 页面一打开就应用首页背景图（没配则保持默认底色）和首页遮罩浓度
 $("bgLayer").style.backgroundImage =
