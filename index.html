@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <!-- 首屏关键资源优先级预加载：浏览器比 JS 更早开始下载 -->
+<link rel="preload" as="image" href="A_setting/image/loading.gif" fetchpriority="high">
 <link rel="preload" as="image" href="A_setting/image/efback.jpg" fetchpriority="high">
 <link rel="preload" as="image" href="A_setting/image/push_button_start.png" fetchpriority="high">
 <link rel="preload" as="image" href="A_setting/image/push_button_answer.png">
@@ -609,9 +610,22 @@
   /* 强制横屏时标题图随 body 一起旋转 90°，与页面其他内容方向保持一致，
      用户把手机横过来后整页文字方向统一。不做反向旋转，
      否则标题横躺而其它内容竖排，画面看起来错乱 */
+  /* 全屏 loading 页：所有资源加载完成前盖住整个视口。
+     注意：运行时会被 JS 挪到 <html> 下（脱离 body），这样手机横屏旋转 body 时它不受影响 */
+  #loadingScreen {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #fdf3dd url("A_setting/image/loading.gif") center / cover no-repeat;
+    image-rendering: pixelated;                       /* 像素画放大时保持棱角，不发糊 */
+    transition: opacity 0.4s ease;                    /* 只做揭幕淡出，不做淡入 */
+  }
+  #loadingScreen.off { opacity: 0; pointer-events: none; }
 </style>
 </head>
 <body>
+<!-- 全屏 loading 页：资源没加载完之前盖住一切，全部就绪后由 JS 揭开 -->
+<div id="loadingScreen"></div>
 <!-- 全屏背景图层：默认空，进入某个 IP 时由 JS 换成该 IP 的图 -->
 <div id="bgLayer"></div>
 <div id="app">
@@ -664,6 +678,22 @@
 
 <script>
 "use strict";
+
+/* ================================================================
+   零、loading 幕布：先把它挂到 <html> 下、兜底别把用户困住
+   ================================================================ */
+// 挪出 body：手机横屏时 body 会被整体旋转，loading 页必须保持端正
+document.documentElement.appendChild(document.getElementById("loadingScreen"));
+// 万一脚本中途报错，也要揭开 loading 页露出（可能不完整的）页面，不能永远卡住
+window.addEventListener("error", hideLoading);
+window.addEventListener("unhandledrejection", hideLoading);
+// 揭开 loading 页：淡出后从 DOM 里移除
+function hideLoading() {
+  const el = document.getElementById("loadingScreen");
+  if (!el || el.classList.contains("off")) return;
+  el.classList.add("off");
+  setTimeout(() => el.remove(), 450);
+}
 
 /* ================================================================
    一、数据配置区（RANGES 数组）
@@ -1390,7 +1420,8 @@ function sfxStop() { playTone(320, 120, 0.18, 0.22); }   // 某个滚轮停稳�
 /* ================================================================
    音效素材：两套
    - short/ 短音效：点击 IP 进入、点“谜底”时随机播一首，只播 1 次
-   - long/  循环 BGM：点“开始”时随机挑一首循环播，抽奖结束/返回时停
+   - long/  循环 BGM：点“开始”时随机挑一首循环播；抽奖结束时不再循环
+            下一遍，但正在播的这一遍让它自然播完（见 finishLong）
    随机但不连续重复（记住上一次的下标，抽到同一首就顺延下一首）
    ================================================================ */
 const SHORT_DIR = "A_setting/music/short/";
@@ -1398,9 +1429,13 @@ const LONG_DIR = "A_setting/music/long/";
 // 想固定成某一首或调整曲库，直接改这两个数组即可
 const SHORT_LIST = [
   "Bon_voyage", "Ciallo", "Genshin", "fish",
-  "gugugaga", "spring", "timestop", "xianbei"
+  "gugugaga", "spring", "timestop", "xianbei",
+  "blank", "dog", "money"
 ];
-const LONG_LIST = ["happy", "manbo", "pipaqu", "sad", "shake", "windGenshin"];
+const LONG_LIST = [
+  "happy", "manbo", "pipaqu", "sad", "shake", "windGenshin",
+  "again", "hyj", "ring","saki"
+];
 
 /* ---- 音频字节预取（解决“玩起来了音乐还没加载出来”） ----
    手机浏览器对 <audio preload="auto"> 基本不听：没有用户手势就不下载，
@@ -1431,14 +1466,24 @@ function ensureSrc(a, path) {
     a.load();
   }
 }
+const _audioWait = new Map();     // path -> [resolve]，让调用方能“等这首音乐下完”
 function cacheAudio(path) {
   // 本地 file:// 打开时 fetch 会被浏览器拦，直接跳过（桌面本地读取本来就快）
-  if (location.protocol === "file:") return;
-  if (typeof fetch !== "function") return;
-  if (_audioBlob.has(path) || _audioFetching.has(path)) return;
-  if (_audioQueue.indexOf(path) >= 0) return;
+  if (location.protocol === "file:") return Promise.resolve(false);
+  if (typeof fetch !== "function") return Promise.resolve(false);
+  if (_audioBlob.has(path)) return Promise.resolve(true);
+  if (_audioFetching.has(path) || _audioQueue.indexOf(path) >= 0) {
+    // 已经在下了：挂到等待名单上，下完（或失败）时一起兑现
+    return new Promise(res => {
+      let arr = _audioWait.get(path);
+      if (!arr) { arr = []; _audioWait.set(path, arr); }
+      arr.push(res);
+    });
+  }
   _audioQueue.push(path);
+  const wait = new Promise(res => _audioWait.set(path, [res]));
   pumpAudioQueue();
+  return wait;
 }
 function pumpAudioQueue() {
   while (_audioActive < 2 && _audioQueue.length) {
@@ -1446,7 +1491,13 @@ function pumpAudioQueue() {
     if (_audioBlob.has(path) || _audioFetching.has(path)) continue;
     _audioFetching.add(path);
     _audioActive++;
-    const done = () => { _audioFetching.delete(path); _audioActive--; pumpAudioQueue(); };
+    const done = () => {
+      _audioFetching.delete(path); _audioActive--;
+      // 兑现所有等这首曲子的 Promise（成功失败都放行，别把 loading 卡死）
+      const arr = _audioWait.get(path);
+      if (arr) { arr.forEach(f => f(_audioBlob.has(path))); _audioWait.delete(path); }
+      pumpAudioQueue();
+    };
     fetch(path, { cache: "force-cache" })
       .then(r => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
       .then(b => {
@@ -1503,48 +1554,121 @@ function stopShort() {
     }
   });
 }
-/* ---- long：循环 BGM ---- */
+/* ---- long：循环 BGM ----
+   为什么 BGM 走 WebAudio 而不是 <audio>：
+   手机 QQ/微信/部分安卓浏览器对 <audio> 有多媒体元素限制——同一时刻只允许
+   一个 <audio> 出声（进 IP 的那段短音效还在响时，第二首就被静默拒绝），
+   于是“点了开始却没音乐、音效倒是正常”。WebAudio 的 AudioBufferSourceNode
+   只认 AudioContext 的运行状态（点击时已 resume），不受这套限制。
+   取不到字节 / 解码失败时，仍退回 <audio> 播放，保证不会彻底没声。 */
 const _longPool = new Map();
-let longSfx = null;                    // 当前正在循环的那一首
+let longSfx = null;                    // 回退方案用的 <audio> 元素
 let lastLongName = "";
+let _bgmNode = null;                   // 当前正在播的 WebAudio 音源
+let _bgmGain = null;
+let _bgmToken = 0;                     // 自增令牌：解码还没完成就换曲/停止时，旧结果作废
+let _bgmCache = { name: "", buffer: null };   // 只缓存最近一首已解码的，省内存
 function getLongAudio(name) {
   const path = LONG_DIR + name + ".mp3";
   const a = _longPool.get(path) || makeAudio(path);
   ensureSrc(a, path);
   return a;
 }
-// 点“开始”时调用（在点击手势里，手机浏览器允许立即播放）
+// 回退：用 <audio> 播（老环境没 WebAudio / 解码失败时）
+function playLongByElement(name) {
+  const a = getLongAudio(name);
+  longSfx = a;
+  a.muted = false;
+  a.loop = true;                       // 默认循环；抽奖结束时由 finishLong 关掉
+  if (a.readyState > 0) a.currentTime = 0;
+  a.volume = 1;                        // 不做淡入，点了就直接全音量
+  const p = a.play();
+  if (p && p.catch) p.catch(err => console.warn("[BGM] <audio> 播放被拒：", err && err.name));
+}
+// 点“开始”时调用（在点击手势里，先 resume AudioContext，再起播）
 function playLong() {
   if (!LONG_LIST.length) return;
-  // 注意：这里不再 stopShort()，让进入 IP 的那段短音效自己播完，不中途掐断
+  stopLong();                          // 先停掉上一首（音源节点 + 回退元素）
+  // 注意：这里不 stopShort()，让进入 IP 的那段短音效自己播完，不中途掐断
   const ready = LONG_LIST.filter(n => _audioBlob.has(LONG_DIR + n + ".mp3"));
   const list = ready.length ? ready : LONG_LIST;      // 已缓存好的优先，点了就有声
   const cand = list.length > 1 ? list.filter(n => n !== lastLongName) : list;
   const name = cand[Math.floor(Math.random() * cand.length)] || list[0];
   lastLongName = name;
-  const a = getLongAudio(name);
-  if (longSfx && longSfx !== a) {      // 换曲时先停掉上一首
-    longSfx.pause();
-    longSfx.currentTime = 0;
-  }
-  longSfx = a;
-  a.muted = false;
-  a.currentTime = 0;
-  // 不做淡入：直接从全音量起播（点了就要立刻听到，不要慢慢变大）
-  a.volume = 1;
-  const p = a.play();
-  if (p && p.catch) p.catch(() => {});
+  const path = LONG_DIR + name + ".mp3";
+  const token = ++_bgmToken;
+
+  if (!audioCtx) { playLongByElement(name); return; }  // 极老环境：退回元素
+  if (audioCtx.state === "suspended") audioCtx.resume();
+
+  const startNode = buffer => {
+    if (token !== _bgmToken) return;   // 期间又换曲/停止了，丢弃
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;                   // 循环到抽奖结束
+    const gain = audioCtx.createGain();
+    gain.gain.value = 1;               // 不做淡入
+    src.connect(gain).connect(audioCtx.destination);
+    src.start();
+    _bgmNode = src;
+    _bgmGain = gain;
+  };
+  // 同一首刚播过：直接用解码好的缓冲，零延迟
+  if (_bgmCache.name === name && _bgmCache.buffer) { startNode(_bgmCache.buffer); return; }
+
+  const url = _audioBlob.get(path) || path;
+  fetch(url)
+    .then(r => (r.ok || r.status === 0 ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+    .then(buf => new Promise((res, rej) => {
+      const p = audioCtx.decodeAudioData(buf, res, rej);   // 老 Safari 只支持回调式
+      if (p && p.then) p.then(res, rej);
+    }))
+    .then(buffer => {
+      _bgmCache = { name, buffer };
+      startNode(buffer);
+    })
+    .catch(err => {
+      console.warn("[BGM] 解码失败，退回 <audio>：", err && err.message);
+      if (token === _bgmToken) playLongByElement(name);
+    });
 }
 // 停止循环 BGM：抽奖结束或中途返回首页时调用
 function stopLong() {
-  if (!longSfx) return;
-  longSfx.pause();
-  longSfx.currentTime = 0;
-  longSfx = null;
+  _bgmToken++;                         // 让还在解码的那次作废
+  if (_bgmNode) {
+    try { _bgmNode.stop(); } catch (e) {}
+    try { _bgmNode.disconnect(); } catch (e) {}
+    _bgmNode = null;
+  }
+  if (_bgmGain) {
+    try { _bgmGain.disconnect(); } catch (e) {}
+    _bgmGain = null;
+  }
+  if (longSfx) {
+    longSfx.pause();
+    longSfx.currentTime = 0;
+    longSfx = null;
+  }
+}
+// 抽奖结束时调用：不立刻掐断，让正在播的这一遍 BGM 自然播完，
+// 只是不再循环下一遍（立即停用的场景仍走 stopLong，如返回首页）
+function finishLong() {
+  const node = _bgmNode;
+  if (node) {
+    node.loop = false;                 // WebAudio：播到 buffer 末尾就停，onended 触发
+    const gain = _bgmGain;
+    node.onended = () => {             // 本遍自然播完后清理音源节点
+      try { node.disconnect(); } catch (e) {}
+      if (gain) { try { gain.disconnect(); } catch (e) {} }
+      if (_bgmNode === node) { _bgmNode = null; _bgmGain = null; }
+    };
+  }
+  if (longSfx) longSfx.loop = false;   // 回退元素同样：播完本遍即止，不进下一遍
 }
 // 预取：short 开机就抓字节；long 体积稍大，等玩家点进某个 IP 时再悄悄抓
 // （fetch 成 blob 后，播放不再受“没手势不下载”的限制，点了就有声）
-function prefetchShort() { SHORT_LIST.forEach(n => cacheAudio(SHORT_DIR + n + ".mp3")); }
+// 注：开机阶段的整体预取（short + long 一次下完）已统一挪到第十五节的
+//     bootWhenReady() 里，这里只保留进入 IP 时的 long 兜底补抓。
 function prefetchLong() { LONG_LIST.forEach(n => cacheAudio(LONG_DIR + n + ".mp3")); }
 /* ================================================================
    四、预加载（加快弹窗图片显示速度的核心）
@@ -1559,13 +1683,15 @@ function prefetchLong() { LONG_LIST.forEach(n => cacheAudio(LONG_DIR + n + ".mp3
    触发时机：
    - 页面启动：<link rel=preload> 先拉首屏按钮和背景（浏览器优先级最高）
    - 进入某个 IP：立即预加载该 IP 全部角色图（玩家接下来一定会用到）
-   - 首屏空闲后：按首页卡片顺序把全站角色图分批悄悄下载好，
-     这样点进任意 IP 都是热的（尊重“省流量”设置，开启时不预热）
+   - 页面启动（loading 幕布后面）：全站角色图一次下完才揭幕进首页，
+     点进任意 IP 都是热的（尊重“省流量”设置，开启时退回进入 IP 再按需加载）
    - 抽奖结束：单独对答案图做预解码
    ================================================================ */
 const _imgCache = new Map();    // url -> Promise<boolean>，同 URL 只请求一次
 const _imgReady = new Set();    // 已经下载完成的 url
-let _decodedImg = null;         // 只保活“当前答案图”的解码结果，避免内存爆掉
+let _decodedImg = null;         // 只保活“当前答案图”的 Image（引用着解码位图），
+                                // 弹窗打开时浏览器直接用现成位图、不用重新解码；
+                                // 代码不读它，靠“一直持有引用”来保活，避免全站图片撑爆内存
 function preloadImage(url, opt) {
   if (!url) return Promise.resolve(false);
   const hit = _imgCache.get(url);
@@ -1603,33 +1729,10 @@ function decodeOnly(url) {
 }
 function preloadImages(urls) { urls.forEach(u => preloadImage(u)); }
 
-// 全站角色图预热：等首屏 load 完、浏览器空闲时，按首页卡片顺序分批下载
-function warmUpAllImages() {
-  // 用户开了“省流量”就不主动下大图，只保留进入 IP 时的按需加载
-  if (navigator.connection && navigator.connection.saveData) return;
-  const queue = [];
-  const seen = new Set();
-  RANGES.forEach(r => (r.characters || []).forEach(c => {
-    if (c.image && !seen.has(c.image)) { seen.add(c.image); queue.push(c.image); }
-  }));
-  if (!queue.length) return;
-  let i = 0;
-  const BATCH = 3;                 // 一次 3 张，别把手机带宽抢光
-  const step = () => {
-    if (i >= queue.length) return;
-    const batch = queue.slice(i, i + BATCH);
-    i += BATCH;
-    Promise.all(batch.map(u => preloadImage(u))).then(() => {
-      if (i < queue.length) setTimeout(step, 150);   // 批间留口气，保证交互优先
-    });
-  };
-  const kick = () => {
-    if ("requestIdleCallback" in window) requestIdleCallback(step, { timeout: 3000 });
-    else setTimeout(step, 1000);
-  };
-  if (document.readyState === "complete") setTimeout(kick, 500);
-  else window.addEventListener("load", () => setTimeout(kick, 500));
-}
+// （旧版“首屏空闲后分批预热全站角色图”的 warmUpAllImages 已删除：
+//   它的职责由第十五节启动流程的 bootWhenReady() 接管——
+//   现在是 loading 幕布后面一次性下完全部角色图，见 bootWhenReady 注释）
+
 /* ================================================================
    五、全局状态变量
    ================================================================ */
@@ -1647,7 +1750,7 @@ let rafId = null;                    // requestAnimationFrame 的编号
 let lastTickOffset = [0, 0, 0];      // 上次滴答声时各滚轮的位置
 let stopSounded = [false, false, false]; // 各滚轮停止音是否已响
 /* ================================================================
-   五、常用工具函数
+   六、常用工具函数
    ================================================================ */
 const $ = id => document.getElementById(id);
 // 缓动函数：开始快、结尾平滑减速（先快后慢才有“刹车感”）
@@ -1666,7 +1769,7 @@ function buildReelItems(range) {
   return lists;
 }
 /* ================================================================
-   六、首页：生成范围卡片
+   七、首页：生成范围卡片
    ================================================================ */
 function renderHome() {
   const box = $("rangeList");
@@ -1681,11 +1784,11 @@ function renderHome() {
   });
 }
 /* ================================================================
-   七、进入 / 离开某个抽奖范围（IP）
+   八、进入 / 离开某个抽奖范围（IP）
    ================================================================ */
 function enterRange(idx) {
   playShort();                        // 首页点击 IP：从 short/ 随机播一首
-  prefetchLong();                     // 顺手缓冲 long/，等点“开始”时不用等下载
+  prefetchLong();                     // 兜底补抓 long/：开机门已缓存过就秒返回，没下完的接着下
   currentRange = RANGES[idx];
   reelItems = buildReelItems(currentRange);
   // 切换这个 IP 的背景图（没配就恢复默认底色）
@@ -1748,7 +1851,7 @@ function goHome() {
   fitLandscape();                    // 页面高度变了，重新计算横屏缩放
 }
 /* ================================================================
-   八、竖向滚轮的构建与逐帧渲染
+   九、竖向滚轮的构建与逐帧渲染
    ================================================================ */
 function getWindowEl(i) {
   return $("reelRows").children[i].querySelector(".reel-window");
@@ -1792,7 +1895,7 @@ function renderReel(i, offset) {
   });
 }
 /* ================================================================
-   九、开始抽奖（核心！）
+   十、开始抽奖（核心！）
    思路：点击的一瞬间先随机选定“谜底角色”→ 三个滚轮的结局就定了，
    然后只是播放滚动动画，让它精准停在预定的格子上。
    ================================================================ */
@@ -1878,12 +1981,12 @@ function frame(now) {
 function finishSpin() {
   state = "idle";
   rafId = null;
-  stopLong();                        // 抽奖结束：停掉循环 BGM
+  finishLong();                      // 抽奖结束：BGM 不再循环下一遍，但播完本遍
   $("btnStart").disabled = false;   // 可以再抽一次
   $("btnAnswer").disabled = false;  // 谜底可以点了
 }
 /* ================================================================
-   十、谜底弹窗
+   十一、谜底弹窗
    ================================================================ */
 function openAnswer() {
   if (!answer) return;              // 还没抽过，不响应
@@ -1912,7 +2015,7 @@ function closePopup() {
   $("overlay").classList.remove("show");
 }
 /* ================================================================
-   十一、事件绑定
+   十二、事件绑定
    ================================================================ */
 $("btnStart").addEventListener("click", startSpin);
 $("btnAnswer").addEventListener("click", openAnswer);
@@ -1933,7 +2036,7 @@ $("overlay").addEventListener("click", e => {
 });
 
 /* ================================================================
-   十一·补、开发者验证（点右下角版本号唤起）
+   十三、开发者验证（点右下角版本号唤起）
    安全说明：网页里只存密码的 SHA-256 哈希值，不存明文；
    输入密码后现场算哈希再比对。注意纯前端校验只能防普通玩家
    随手翻源码，懂技术的人仍可绕过，不能当作真正的安全防线。
@@ -1987,7 +2090,7 @@ $("devOverlay").addEventListener("click", e => {
   if (e.target === $("devOverlay")) closeDev();
 });
 /* ================================================================
-   十二、手机竖屏时强制横屏显示（不改任何界面布局）
+   十四、手机竖屏时强制横屏显示（不改任何界面布局）
    原理：竖屏时把整个 body 旋转 90°，内容永远保持横屏方向；
    内容偏高时整体等比缩小到刚好放下（只是缩放，不是改布局）；
    手机横过来（横屏方向）后自动撤销，恢复正常显示。
@@ -2012,6 +2115,8 @@ function fitLandscape() {
     body.style.width = "";
     body.style.height = "";
     body.style.transform = "";
+    const ls0 = document.getElementById("loadingScreen");
+    if (ls0) { ls0.style.width = ""; ls0.style.height = ""; ls0.style.transform = ""; }
     $("app").style.maxWidth = "";                   // 清掉旋转模式设置的列宽限制
     const panel = $("panel");
     panel.style.width = "";                         // 清掉旋转模式设置的弹窗尺寸
@@ -2085,6 +2190,15 @@ function fitLandscape() {
   body.style.transform =
     "translateX(" + vw + "px) rotate(90deg) scale(" + k + ")";
   setBgw(vh / k, vw / k);                 // 旋转后 bgLayer 尺寸 = body 尺寸
+  /* loading 页也要跟着转成横屏：它是 16:10 的横版像素画，
+     竖屏直接铺会把角色和进度条裁得只剩一角，转过来才完整 */
+  const ls = document.getElementById("loadingScreen");
+  if (ls) {
+    ls.style.width = vh + "px";
+    ls.style.height = vw + "px";
+    ls.style.transformOrigin = "left top";
+    ls.style.transform = "translateX(" + vw + "px) rotate(90deg)";
+  }
 }
 window.addEventListener("resize", fitLandscape);
 window.addEventListener("orientationchange", () => {
@@ -2092,19 +2206,39 @@ window.addEventListener("orientationchange", () => {
   setTimeout(fitLandscape, 300);          // 部分手机浏览器转屏后尺寸更新有延迟
 });
 /* ================================================================
-   十三、启动：渲染首页
+   十五、启动：先渲染好首页（藏在 loading 页后面），
+        等“所有内容”都加载完，再揭开 loading 进入首页
    ================================================================ */
-// 页面一打开就预加载首页背景和所有 IP 背景（数量少，瞬间完成）
 const allBg = [HOME_BACKGROUND, ...RANGES.map(r => r.background)].filter(Boolean);
-preloadImages(allBg);
-prefetchShort();                          // short 体积小，开机就缓冲好，点 IP 秒响
-warmUpAllImages();                        // 首屏空闲后后台预热全站角色图（省流量模式下自动跳过）
 renderHome();
 // 页面一打开就应用首页背景图（没配则保持默认底色）和首页遮罩浓度
 $("bgLayer").style.backgroundImage =
   HOME_BACKGROUND ? 'url("' + HOME_BACKGROUND + '")' : "none";
 document.body.style.setProperty("--bg-dim", HOME_DIM);
 fitLandscape();
+
+// 等 loading 页后面的一切就绪：背景 + 全部角色图 + 全部音效字节
+function bootWhenReady() {
+  const jobs = [];
+  // 1) 首页背景和各 IP 背景
+  allBg.forEach(u => jobs.push(preloadImage(u)));
+  // 2) 全部音效：short + long 一次下完（点 IP / 点开始就 100% 有声）
+  SHORT_LIST.forEach(n => jobs.push(cacheAudio(SHORT_DIR + n + ".mp3")));
+  LONG_LIST.forEach(n => jobs.push(cacheAudio(LONG_DIR + n + ".mp3")));
+  // 3) 全站角色图（开了“省流量”就跳过大图，保持按需加载）
+  if (!(navigator.connection && navigator.connection.saveData)) {
+    const seen = new Set();
+    RANGES.forEach(r => (r.characters || []).forEach(c => {
+      if (c.image && !seen.has(c.image)) { seen.add(c.image); jobs.push(preloadImage(c.image)); }
+    }));
+  }
+  // 最少展示 0.6 秒（刷新时资源秒完，别让 loading 一闪而过闪眼睛）
+  const minShow = new Promise(r => setTimeout(r, 600));
+  // 最长等 25 秒：个别资源卡死也不能把用户困在 loading 页
+  const cap = new Promise(r => setTimeout(r, 25000));
+  Promise.race([Promise.all(jobs), cap]).then(() => minShow).then(hideLoading);
+}
+bootWhenReady();
 </script>
 </body>
 </html>
